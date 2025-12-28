@@ -11,7 +11,9 @@ export function MonBixiDialog() {
     const [stats, setStats] = useState({
         rideCountYearly: 0,
         totalHoursYearly: 0,
-        mostUsedStation: "?"
+        mostUsedStation: "?",
+        totalDistanceYearly: 0,
+        mostVisitedBorough: "?"
     });
 
     useRideStoreTx(async (db) => {
@@ -31,6 +33,8 @@ export function MonBixiDialog() {
             <h1>Nombres de trajets cette année: {stats.rideCountYearly}</h1>
             <h1>Total d'heures à vélo cette année: {stats.totalHoursYearly}h</h1>
             <h1>Station la plus utilisée: {stats.mostUsedStation}</h1>
+            <h1>Distance totale estimée: {stats.totalDistanceYearly}km</h1>
+            <h1>Quartier favori: {stats.mostVisitedBorough}</h1>
         </dialog>
     );
 }

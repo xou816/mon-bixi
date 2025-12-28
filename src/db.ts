@@ -85,6 +85,10 @@ class IndexDBQuery<R> {
         return this
     }
 
+    async getKey(key: unknown) {
+        return this.filterKeys(IDBKeyRange.only(key)).getOne()
+    }
+
     descKeys() {
         this._order = "prevunique"
         return this

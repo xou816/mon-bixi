@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import compileTime from "vite-plugin-compile-time"
 import react from "@vitejs/plugin-react";
 import webExtension, { readJsonFile } from "vite-plugin-web-extension";
 
@@ -20,5 +21,6 @@ export default defineConfig({
     webExtension({
       manifest: generateManifest,
     }),
+    compileTime()
   ],
 });
