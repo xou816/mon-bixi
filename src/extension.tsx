@@ -30,6 +30,7 @@ function ensureReactDialogInjected(): HTMLElement {
     if (content != null) return content
 
     content = document.createElement("div")
+    content.id = contentId
     content.attachShadow({ mode: "open" })
     document.body.appendChild(content)
 
@@ -66,8 +67,9 @@ function setupNav(nav: Element, tabId: string) {
     newTab.setAttribute("href", "#")
     newTab.id = tabId
     const text = newTab.querySelector("[data-testid=core-ui-text]")
-    if (text) text.textContent = "Mon Bixi"
-    const dialog = ensureReactDialogInjected()
+    if (text) text.textContent = "Mon année avec Bixi"
+    
+    ensureReactDialogInjected()
 
     const openMonBixi = new CustomEvent(OPEN_MON_BIXI_EVENT);
     newTab.addEventListener("click", () => document.dispatchEvent(openMonBixi))

@@ -1,22 +1,36 @@
 import { MutableRefObject, useRef, useState } from "react";
+import { useRideStoreTx } from "./db";
 import { useOpenMonBixi } from "./extension";
-import { queryStats } from "./queries";
 import classes from "./extension.module.css";
+import { fetchRidesAsNeeded } from "./import";
+import { getOrComputeStats, getStat } from "./stats";
+
 
 export function MonBixiDialog() {
     const dialogRef: MutableRefObject<HTMLDialogElement | null> = useRef(null)
-    const [rides, setRides] = useState(-1);
+    const [stats, setStats] = useState({
+        rideCountYearly: 0,
+        totalHoursYearly: 0,
+        mostUsedStation: "?"
+    });
+
+    useRideStoreTx(async (db) => {
+        await fetchRidesAsNeeded(db)
+        const freshStats = await getOrComputeStats(db)
+        for (const name of Object.keys(stats)) {
+            setStats((stats) => ({ ...stats, [name]: getStat(freshStats, name)}))
+        }
+    })
 
     useOpenMonBixi(async () => {
         dialogRef.current?.showModal()
-        if (rides !== -1) return;
-        const stats = await queryStats();
-        setRides(stats.data.member.stats.numberOfRides);
-    }, [rides]);
+    });
 
     return (
         <dialog ref={dialogRef} className={classes.rootDialog} closedby="any">
-            <h1>Nombres de trajets: {rides}</h1>
+            <h1>Nombres de trajets cette année: {stats.rideCountYearly}</h1>
+            <h1>Total d'heures à vélo cette année: {stats.totalHoursYearly}h</h1>
+            <h1>Station la plus utilisée: {stats.mostUsedStation}</h1>
         </dialog>
     );
 }
