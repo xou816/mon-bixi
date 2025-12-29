@@ -42,6 +42,8 @@ export async function fetchRidesAsNeeded(db: DbHandle) {
     const lastRideMs = lastRide?.startTimeMs ?? 0;
     const oldestRideMs = oldestRide?.startTimeMs ?? 0;
 
+    return
+
     await fetchBatches(db, 0, ({ hasMore, newestRideMs }) => newestRideMs > lastRideMs && hasMore && newestRideMs >= START_OF_YEAR);
 
     if (oldestRideMs <= START_OF_YEAR) return;

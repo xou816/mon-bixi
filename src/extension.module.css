@@ -7,6 +7,8 @@
     width: calc(90vh * 9/16);
     position: relative;
 
+    --storiesColor: #555;
+
     /* closed state */
     opacity: 0;
     transform: scale(.05);
@@ -77,7 +79,6 @@
     gap: 6px;
 
     .stepperItem {
-        --color: #555;
         --stepperFill: 0;
 
         cursor: pointer;
@@ -85,8 +86,8 @@
         flex: 1;
         height: 4px;
         background: linear-gradient(to right,
-                var(--color) 0 calc(var(--stepperFill) * 100%),
-                color-mix(in srgb, var(--color), rgba(255, 255, 255, 0.5)) calc(var(--stepperFill) * 100%) 100%);
+                var(--storiesColor) 0 calc(var(--stepperFill) * 100%),
+                color-mix(in srgb, var(--storiesColor), rgba(255, 255, 255, 0.5)) calc(var(--stepperFill) * 100%) 100%);
         border-radius: 4px;
 
         &:hover {
@@ -120,6 +121,18 @@
     }
 }
 
-.page {
+.storyPage {
     margin: 36px 12px;
+}
+
+.pauseButton {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 36px 12px;
+    background: none;
+    border: none;
+    color: var(--storiesColor);
+    font-size: 1.25em;
+    cursor: pointer;
 }
