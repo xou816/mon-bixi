@@ -54,14 +54,12 @@ async function getStore(store: string, mode: IDBTransactionMode) {
 }
 
 export type DbHandle = {
-    createRidesTx: (mode: IDBTransactionMode) => Promise<IDBObjectStore>
     createTx: (store: string, mode: IDBTransactionMode) => Promise<IDBObjectStore>
 }
 
 export function useRideStoreTx(callback: (h: DbHandle) => void) {
     useEffect(() => {
         callback({
-            createRidesTx: (mode) => getStore(RIDES_STORE, mode),
             createTx: (store, mode) => getStore(store, mode)
         })
     }, [])
@@ -117,7 +115,7 @@ class IndexDBQuery<R> {
     async get(): Promise<R[]> {
         const { resolve, promise } = Promise.withResolvers<R[]>()
         const results: R[] = []
-        const tx = await this.db.createTx(this.store,"readonly")
+        const tx = await this.db.createTx(this.store, "readonly")
         tx.openCursor(this._range, this._order).onsuccess = (event) => {
             const cursor = getResult<IDBCursorWithValue | null>(event)
             if (cursor && this._filter(cursor.value) && results.length < this._limit)
@@ -135,10 +133,7 @@ class IndexDBQuery<R> {
 
 export type Stats = {
     timeMs: string,
-    stats: {
-        name: string,
-        value: any
-    }[]
+    stats: { [key: string]: unknown }
 }
 
 export const findRides = (db: DbHandle) => new IndexDBQuery<Ride>(db, RIDES_STORE)

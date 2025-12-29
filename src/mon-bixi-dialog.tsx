@@ -3,7 +3,7 @@ import { useRideStoreTx } from "./db";
 import { useOpenMonBixi } from "./extension";
 import classes from "./extension.module.css";
 import { fetchRidesAsNeeded } from "./import";
-import { getOrComputeStats, getStat } from "./stats";
+import { getOrComputeStats } from "./stats";
 
 
 export function MonBixiDialog() {
@@ -19,9 +19,7 @@ export function MonBixiDialog() {
     useRideStoreTx(async (db) => {
         await fetchRidesAsNeeded(db)
         const freshStats = await getOrComputeStats(db)
-        for (const name of Object.keys(stats)) {
-            setStats((stats) => ({ ...stats, [name]: getStat(freshStats, name)}))
-        }
+        setStats((stats) => ({ ...stats, ...freshStats.stats }))
     })
 
     useOpenMonBixi(async () => {

@@ -1,7 +1,7 @@
 import { DbHandle, findRides, findStats, Stats, STATS_STORE } from "./db";
 import { END_OF_YEAR, START_OF_YEAR } from "./import";
 import { Location } from "./queries";
-import { allStations } from "./data/data.compile";
+import { boroughPerStation } from "./data/data.compile";
 
 const EARTH_RADIUS = 6161e3
 const haversineDeg = (theta: number) => Math.sin(rad(theta) / 2) ** 2
@@ -11,6 +11,20 @@ const cosDeg = (theta: number) => Math.cos(rad(theta))
 function sphericalDist(a: Location, b: Location): number {
     const h = haversineDeg(b.lat - a.lat) + cosDeg(a.lat) * cosDeg(b.lat) * haversineDeg(b.lng - a.lng)
     return EARTH_RADIUS * 2 * Math.asin(Math.sqrt(h))
+}
+
+type FreqTable = { [k: string]: number } & { _mostFrequent: string }
+
+function frequencyTable<T>(data: T[], categorize: (t: T) => string[]): FreqTable {
+    return data.reduce((freqTable, t) => {
+        const categorized = categorize(t)
+        for (const cat of categorized) {
+            freqTable[cat] = 1 + (freqTable[cat] ?? 0)
+            const c = freqTable[freqTable._mostFrequent] ?? 0
+            freqTable._mostFrequent = freqTable[cat] > c ? cat : freqTable._mostFrequent
+        }
+        return freqTable
+    }, {} as FreqTable)
 }
 
 export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
@@ -23,71 +37,29 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
     let stats = await findStats(db).getKey(timeMs)
     // if (stats) return stats
 
-    stats = {
-        timeMs,
-        stats: [
-            {
-                name: "rideCountYearly",
-                value: rides.length
-            },
-            {
-                name: "totalHoursYearly",
-                value: (() => {
-                    const totalMs = rides.reduce((acc, { startTimeMs, endTimeMs }) => acc + parseInt(endTimeMs, 10) - parseInt(startTimeMs, 10), 0)
-                    return Math.floor(totalMs / 1000 / 3600)
-                })()
-            },
-            {
-                name: "mostUsedStation",
-                value: (() => {
-                    const stationsUsed = rides.reduce((stations, { startAddressStr, endAddressStr }) => {
-                        const c0 = stations[stations._mostFrequent] ?? -1
-                        const c1 = (stations[startAddressStr] ?? 0) + 1
-                        const c2 = (stations[endAddressStr] ?? 0) + 1
-                        stations._mostFrequent = c1 > c0 && c1 >= c2 ? startAddressStr : c2 > c0 ? endAddressStr : stations._mostFrequent
-                        return { ...stations, [startAddressStr]: c1, [endAddressStr]: c2 }
-                    }, {} as { [k: string]: number } & { _mostFrequent: string })
-                    return stationsUsed._mostFrequent
-                })()
-            },
-            {
-                name: "totalDistanceYearly",
-                value: (() => {
-                    const dist = rides.reduce((acc, { startAddress, endAddress }) => {
-                        const d = sphericalDist(startAddress, { ...startAddress, lat: endAddress.lat })
-                            + sphericalDist({ ...startAddress, lat: endAddress.lat }, endAddress);
-                        return acc + d
-                    }, 0)
-                    return Math.floor(dist / 1e3)
-                })()
-            },
-            {
-                name: "mostVisitedBorough", 
-                value: (() => {
-                    const mostVisited = rides.reduce((acc, { startAddressStr, endAddressStr }) => {
-                        const c0 = acc[acc._mostFrequent] ?? -1
-                        const b1 = allStations[startAddressStr]?.arrondissement ?? ""
-                        const c1 = (acc[b1] ?? 0) + 1
-                        const b2 = allStations[endAddressStr]?.arrondissement ?? ""
-                        const c2 = (acc[b2] ?? 0) + 1
-                        acc._mostFrequent =  c1 > c0 && c1 >= c2 ? b1 : c2 > c0 ? b2 : acc._mostFrequent
-                        return {
-                            ...acc,
-                            [b1]: c1,
-                            [b2]: c2
-                        }
-                    }, {} as {[k: string]: number} & { _mostFrequent: string })
-                    return mostVisited._mostFrequent
-                })()
-            }
-        ]
+    const s = {
+        rideCountYearly: rides.length,
+        rideTimeMs: rides.map(({ startTimeMs, endTimeMs }) => parseInt(endTimeMs, 10) - parseInt(startTimeMs, 10)),
+        mostUsedStations: frequencyTable(rides, ({ startAddressStr, endAddressStr }) => [startAddressStr, endAddressStr]),
+        rideEstimatedDistance: rides.map(({ startAddress, endAddress }) => (
+            sphericalDist(startAddress, { ...startAddress, lat: endAddress.lat })
+            + sphericalDist({ ...startAddress, lat: endAddress.lat }, endAddress))),
+        mostVisitedBoroughs: frequencyTable(rides, ({ startAddressStr, endAddressStr }) => [
+            boroughPerStation[startAddressStr] ?? "",
+            boroughPerStation[endAddressStr] ?? ""
+        ])
     }
 
+    const s2 = {
+        ...s,
+        totalHoursYearly: Math.floor(s.rideTimeMs.reduce((sum, timeMs) => sum + timeMs, 0) / 1000 / 3600),
+        mostUsedStation: s.mostUsedStations._mostFrequent,
+        totalDistanceYearly: Math.floor(1e-3 * s.rideEstimatedDistance.reduce((sum, dist) => sum + dist, 0)),
+        mostVisitedBorough: s.mostVisitedBoroughs._mostFrequent
+    }
+
+    stats = { timeMs, stats: s2 }
     const tx = await db.createTx(STATS_STORE, "readwrite")
     tx.put(stats)
     return stats
-}
-
-export function getStat<T = unknown>(stats: Stats, statName: string): T | undefined {
-    return stats.stats.find(({ name }) => name === statName)?.value
 }

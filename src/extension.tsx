@@ -36,7 +36,7 @@ function ensureReactDialogInjected(): HTMLElement {
 
     ReactDOM.createRoot(content.shadowRoot!).render(
         <>
-            <link rel="stylesheet" type="text/css" href={browser.runtime.getURL("style.css")} />
+            <link rel="stylesheet" type="text/css" href={browser.runtime.getURL("mon-bixi.css")} />
             <MonBixiDialog />
         </>
     );
@@ -53,10 +53,8 @@ function setupNav(nav: Element, tabId: string) {
 
     const allLinks = nav?.querySelectorAll("a[href]")
     const anyNonSelectedLink = Array.from(allLinks?.values() ?? [])
-        .find((link: Element) => {
-            return link.tagName.toLowerCase() === "a" &&
-                !window.location.toString().endsWith(link.getAttributeNode("href")?.value ?? "")
-        })
+        .find((link: Element) => link.tagName.toLowerCase() === "a" &&
+            !window.location.toString().replace(/#$/, "").endsWith(link.getAttributeNode("href")?.value ?? ""))
 
     if (nav == undefined || anyNonSelectedLink == undefined) {
         return
@@ -68,7 +66,7 @@ function setupNav(nav: Element, tabId: string) {
     newTab.id = tabId
     const text = newTab.querySelector("[data-testid=core-ui-text]")
     if (text) text.textContent = "Mon année avec Bixi"
-    
+
     ensureReactDialogInjected()
 
     const openMonBixi = new CustomEvent(OPEN_MON_BIXI_EVENT);

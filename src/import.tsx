@@ -1,4 +1,4 @@
-import { DbHandle, findRides } from "./db";
+import { DbHandle, findRides, RIDES_STORE } from "./db";
 import { queryHistory, Ride } from "./queries";
 
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms))
@@ -11,19 +11,26 @@ const getLastRides = (offset: number) => queryHistory(offset).then(({ data }) =>
     hasMore: data.member.rideHistory.hasMore
 }))
 
-async function fetchBatches(db: DbHandle, startOffset: number, continueIf: (cur: { rides: Ride[], hasMore: boolean, oldestRideMs: string }) => boolean) {
+type BatchInfo = { rides: Ride[], hasMore: boolean, oldestRideMs: string, newestRideMs: string }
+
+async function fetchBatches(db: DbHandle, startOffset: number, continueIf: (cur: BatchInfo) => boolean) {
     let offset = startOffset
-    let cur = {rides: new Array<Ride>(), hasMore: true}
-    do  {
+    let cur = { rides: new Array<Ride>(), hasMore: true }
+    do {
         cur = await getLastRides(offset)
-        const tx = await db.createRidesTx("readwrite")
+        const tx = await db.createTx(RIDES_STORE, "readwrite")
         for (const ride of cur.rides) {
-            tx.add(ride)
+            if (ride.startTimeMs < END_OF_YEAR)
+                tx.add(ride)
         }
 
         offset += 10
         await sleep(500)
-    } while (continueIf({ ...cur, oldestRideMs: cur.rides[cur.rides.length - 1].startTimeMs }))
+    } while (continueIf({
+        ...cur,
+        oldestRideMs: cur.rides[cur.rides.length - 1].startTimeMs,
+        newestRideMs: cur.rides[0].startTimeMs
+    }))
 }
 
 export async function fetchRidesAsNeeded(db: DbHandle) {
@@ -35,8 +42,8 @@ export async function fetchRidesAsNeeded(db: DbHandle) {
     const lastRideMs = lastRide?.startTimeMs ?? 0;
     const oldestRideMs = oldestRide?.startTimeMs ?? 0;
 
-    await fetchBatches(db, 0, ({ rides, hasMore }) => rides[0].startTimeMs > lastRideMs && hasMore && rides[0].startTimeMs >= START_OF_YEAR);
-    
+    await fetchBatches(db, 0, ({ hasMore, newestRideMs }) => newestRideMs > lastRideMs && hasMore && newestRideMs >= START_OF_YEAR);
+
     if (oldestRideMs <= START_OF_YEAR) return;
     await fetchBatches(db, count - count % 10, ({ oldestRideMs }) => oldestRideMs > START_OF_YEAR);
 }
