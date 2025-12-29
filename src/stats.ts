@@ -1,4 +1,4 @@
-import { DbHandle, findRides, findStats, Stats, STATS_STORE } from "./db";
+import { DbHandle, findRides, findStats, STATS_STORE } from "./db";
 import { END_OF_YEAR, START_OF_YEAR } from "./import";
 import { Location } from "./queries";
 import { boroughPerStation } from "./data/data.compile";
@@ -45,8 +45,8 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
             sphericalDist(startAddress, { ...startAddress, lat: endAddress.lat })
             + sphericalDist({ ...startAddress, lat: endAddress.lat }, endAddress))),
         mostVisitedBoroughs: frequencyTable(rides, ({ startAddressStr, endAddressStr }) => [
-            boroughPerStation[startAddressStr] ?? "",
-            boroughPerStation[endAddressStr] ?? ""
+            boroughPerStation[startAddressStr] ?? "Inconnu",
+            boroughPerStation[endAddressStr] ?? "Inconnu"
         ])
     }
 
@@ -63,3 +63,21 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
     tx.put(stats)
     return stats
 }
+
+export type StatsDetail = {
+    rideCountYearly: number,
+    rideTimeMs: number[],
+    mostUsedStations: { [k: string]: number },
+    rideEstimatedDistance: number[],
+    mostVisitedBoroughs: { [k: string]: number }
+    totalHoursYearly: number,
+    mostUsedStation: string,
+    totalDistanceYearly: number,
+    mostVisitedBorough: string,
+    [key: string]: unknown
+}
+
+export type Stats = {
+    timeMs: string;
+    stats: StatsDetail
+};

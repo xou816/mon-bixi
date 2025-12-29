@@ -1,6 +1,7 @@
-import arrondissements from './arrondissements.json'
-import stations from './stations.json' // todo use https://gbfs.velobixi.com/gbfs/fr/station_information.json
+import arrondissements from './arrondissements.json' // from https://donnees.montreal.ca/fr/dataset/limites-administratives-agglomeration
+import stations from './stations.json' // from https://gbfs.velobixi.com/gbfs/fr/station_information.json
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Shape, Vector2, Vector3 } from "three"
+import simplify from "simplify-js"
 
 type Station = {
     name: string,
@@ -16,8 +17,9 @@ function computeArrondissementsMeshes() {
         const polys = geometry.coordinates
         const meshes = polys.map((poly) => {
             const [exterior, ...holes] = poly
-            // if (holes.length > 0) console.log(properties.NOM)
-            const shape = new Shape(exterior.map(([x, y]) => new Vector2(x, y)))
+            if (holes.length > 0) console.log(`Warning: ${properties.NOM} has holes!`)
+            const simplified = simplify(exterior.map(([x, y]) => ({ x, y })), 1e-3)
+            const shape = new Shape(simplified.map(({ x, y }) => new Vector2(x, y)))
             const geometry = new ExtrudeGeometry(shape, { bevelEnabled: false });
             geometry.computeBoundingBox()
             return new Mesh(geometry, new MeshBasicMaterial())

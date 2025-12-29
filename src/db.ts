@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Ride } from "./queries";
+import { Stats } from "./stats";
 
 export const RIDES_STORE = "rides";
 export const STATS_STORE = "stats"
@@ -129,11 +130,6 @@ class IndexDBQuery<R> {
         }
         return promise
     }
-}
-
-export type Stats = {
-    timeMs: string,
-    stats: { [key: string]: unknown }
 }
 
 export const findRides = (db: DbHandle) => new IndexDBQuery<Ride>(db, RIDES_STORE)
