@@ -1,8 +1,125 @@
 .rootDialog {
+    box-shadow: var(--core-ui-elevation-level5);
     border: none;
-    border-radius: 4px;
+    border-radius: 18px;
+    padding: 0;
+    height: 90vh;
+    width: calc(90vh * 9/16);
+    position: relative;
+
+    /* closed state */
+    opacity: 0;
+    transform: scale(.05);
+    transform-origin: top center;
+    transition: opacity 200ms ease-out,
+        transform 200ms ease-out,
+        overlay 200ms ease allow-discrete,
+        display 200ms ease allow-discrete;
 
     h1 {
         color: var(--core-ui-color-red60);
+        font-family: "LyftProUI", "ProximaNova", sans-serif;
     }
+
+}
+
+.rootDialog:open {
+    transform: scale(1);
+    opacity: 1;
+}
+
+@starting-style {
+    .rootDialog:open {
+        transform: scale(0.05);
+        opacity: 0;
+    }
+}
+
+.rootDialog::backdrop {
+    opacity: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    transition: opacity 200ms ease-out,
+        overlay 200ms ease allow-discrete,
+        display 200ms ease allow-discrete;
+}
+
+.rootDialog:open::backdrop {
+    opacity: 1;
+}
+
+@starting-style {
+    .rootDialog:open::backdrop {
+        opacity: 1;
+    }
+}
+
+@property --stepperFill {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+
+
+@property --stepperTiming {
+    syntax: "<time>";
+    inherits: true;
+    initial-value: 1s;
+}
+
+.stepper {
+    display: flex;
+    flex-direction: row;
+    position: absolute;
+    top: 0;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 6px;
+
+    .stepperItem {
+        --color: #555;
+        --stepperFill: 0;
+
+        cursor: pointer;
+        display: block;
+        flex: 1;
+        height: 4px;
+        background: linear-gradient(to right,
+                var(--color) 0 calc(var(--stepperFill) * 100%),
+                color-mix(in srgb, var(--color), rgba(255, 255, 255, 0.5)) calc(var(--stepperFill) * 100%) 100%);
+        border-radius: 4px;
+
+        &:hover {
+            height: 5px;
+        }
+
+        &.stepperItemActive {
+            animation: fillStepper var(--stepperTiming) linear;
+            animation-play-state: playing;
+            animation-fill-mode: forwards;
+        }
+
+        &.stepperItemActivePaused {
+            animation-play-state: paused;
+        }
+
+        &.stepperItemDone {
+            --stepperFill: 1;
+            animation: none;
+        }
+    }
+}
+
+@keyframes fillStepper {
+    0% {
+        --stepperFill: 0
+    }
+
+    100% {
+        --stepperFill: 1
+    }
+}
+
+.page {
+    margin: 36px 12px;
 }
