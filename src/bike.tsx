@@ -1,25 +1,35 @@
 import { Group, Layer, Path } from "react-konva";
 import { colorRed60 } from "./story-content";
-import { Ref, useEffect, useRef, useState } from "react";
+import { DependencyList, RefObject, useEffect, useRef, useState } from "react";
 import Konva from "konva";
 import { Node } from "konva/lib/Node";
 
-function FrontWheel() {
+const useAnimation = <T extends DependencyList>(animation: Konva.Animation, deps?: T, animate?: (deps: T | never[]) => boolean) => {
+    useEffect(() => {
+        if (animate?.(deps ?? []) === false) animation.stop()
+        else animation.start()
+        return () => { animation.stop() }
+    }, deps)
+}
+
+function FrontWheel({ animated }: { animated: boolean }) {
     const [wheelFrame, setWheelFrame] = useState(0)
     const ref = useRef<Node>(null)
+
     const lastTime = useRef(0)
+    const animation = useRef(new Konva.Animation((frame) => {
+        const curTime = Math.floor(frame.time / 100)
+        const draw = curTime !== lastTime.current
+        lastTime.current = curTime
+        if (draw) {
+            setWheelFrame(v => (v + 1) % 5)
+        }
+        return draw
+    }, ref.current?.getLayer()))
+
     useEffect(() => {
-        const animation = new Konva.Animation((frame) => {
-            const curTime = Math.floor(frame.time / 100)
-            const draw = curTime !== lastTime.current
-            lastTime.current = curTime
-            if (draw) {
-                setWheelFrame(v => (v + 1) % 5)
-            }
-            return draw
-        }, ref.current?.getLayer())
-        animation.start()
-    }, [])
+        if (animated) animation.current.start()
+    }, [animated])
     return (
         <Group ref={ref as any}>
             <Path
@@ -50,16 +60,25 @@ function FrontWheel() {
     )
 }
 
-export function BixiBike({ x, y, scale, ref }: { x: number; y: number; scale: number; ref: Ref<Node> }) {
-    const cached = useRef<Node>(null)
+export function BixiBike({ x, y, scale, animated, ref }: { x: number; y: number; scale: number; ref: RefObject<Node>, animated: boolean }) {
+    const bikeFrame = useRef<Node>(null)
     useEffect(() => {
-        if (!cached.current) return
-        cached.current.cache({ pixelRatio: 5 })
+        if (!bikeFrame.current) return
+        bikeFrame.current.cache({ pixelRatio: 5 })
     }, [])
+
+
+    const animation = useRef(new Konva.Animation((frame) => {
+        if (!ref.current) return
+        const cos = 5 * Math.cos(frame.time * 1e-3)
+        ref.current.setAttr("offsetX", cos)
+    }, ref.current?.getLayer()))
+    useAnimation(animation.current, [animated], ([animated]) => animated)
+
     return (
         <Group ref={ref as any} offsetY={50} x={x} y={y} scaleX={scale} scaleY={scale}>
-            <FrontWheel />
-            <Group ref={cached as any}>
+            <FrontWheel animated={animated} />
+            <Group ref={bikeFrame as any}>
                 <Path
                     fill={colorRed60}
                     data="m 129.01003,95.187985 c -2.57174,0.837315 -15.32641,-0.14341 -7.83431,6.504285 1.40664,1.24811 5.52374,-2.23738 7.83104,5.20134 0.30499,0.98328 0.55152,2.04116 1.05317,3.69848 0,0.0914 1.57815,7.22093 0.76067,8.34885 -6.52601,8.68023 -12.60412,18.22448 -15.39337,22.06687 -3.75632,5.17461 -6.3071,9.44722 -13.26482,10.05313 l -2.834457,0.0987 -2.354895,-5.94537 c -3.146179,-7.6897 -5.90753,-15.50525 -8.533846,-23.38204 -0.629061,-1.82365 -0.608752,-3.63749 -4.336686,-3.12384 -4.480057,0.61729 -2.536547,1.80143 -1.588534,4.26434 0.508528,1.13368 0.91292,2.30875 1.333252,3.47679 -2.209641,1.72131 -5.343763,7.0661 -7.944735,4.95474 -6.086325,-5.08905 -18.937865,-4.54188 -27.834993,1.18546 -6.446559,4.14983 -14.55579,14.79607 -15.257984,20.03133 -0.165501,1.2339 0.705825,1.0982 0.904338,1.125 0.428441,0.0579 17.214958,0.58806 24.904423,0.62509 l -1.088822,1.42059 c -2.698801,3.52114 -2.035112,6.43919 1.571997,6.9112 0.57123,0.0748 6.867398,0.14073 13.991394,0.14573 l 15.636255,0.21412 c 1.601151,0 1.600836,1.1e-4 1.604036,0.81494 0.01333,3.38254 2.177762,6.78156 4.92218,7.73028 v -5.2e-4 c 4.350879,1.50407 9.488297,-2.02858 10.531137,-7.24142 0.32481,-1.62366 0.42259,-1.72936 1.60094,-1.73736 0.9841,-0.007 6.40255,-0.45385 9.07541,-3.08767 5.21542,-6.27025 9.41547,-13.62877 13.93455,-20.48867 6.58768,-10.07759 5.68288,-9.3166 6.95255,-5.84925 1.17302,3.20341 1.16397,3.12292 0.43563,3.80131 -4.66254,4.34283 -10.11059,15.09433 -12.79715,25.25479 -0.84085,3.18004 -0.74432,3.47533 0.79117,2.41123 2.1956,-1.52154 16.55072,-17.69164 16.61449,-17.62787 0.0294,0.0294 0.95086,2.30183 2.04742,5.04931 2.99052,7.49283 5.22396,11.05967 5.79323,11.38094 6.03561,3.40614 1.13411,-9.07772 0.0586,-12.50542 -2.29615,-7.18774 -2.87352,-9.26946 -2.36472,-10.60091 0.0904,-0.23662 5.47767,-6.13452 6.74998,-8.03982 0.86472,-1.29492 0.86493,-1.29504 0.36277,-1.49448 -0.9606,-0.38152 -5.58221,-0.2267 -7.34684,0.24598 -0.89631,0.24008 -1.77391,0.46998 -1.94975,0.51108 -0.24629,0.0576 -0.72002,-1.32869 -2.06396,-6.03787 l -5.27151,-18.42162 c -2.08154,-6.37654 -2.36266,-14.232772 -7.60617,-12.525572 z M 85.704045,131.43273 c 0.0054,-3.1e-4 0.01069,-2e-4 0.01602,0 0.284311,0.011 0.519681,0.76385 1.230416,2.86856 0.886982,2.62663 2.116948,6.02128 4.669482,12.8881 0.597426,1.60719 1.064786,2.93943 1.038696,2.96003 -0.580609,0.45896 -6.894365,0.17223 -6.908105,-0.31368 -0.0089,-0.31399 -0.05706,-0.81537 -0.10697,-1.11414 -0.04991,-0.29877 -0.201245,-1.2274 -0.336414,-2.06396 -0.492234,-3.04644 -3.059896,-9.30355 -3.47524,-9.88673 -0.324299,-0.45534 -0.03933,-1.0541 1.16427,-2.3611 0.74693,-0.8111 1.292253,-1.39991 1.670572,-1.86881 0.309317,-0.38336 0.870848,-1.09862 1.037273,-1.10827 z" />

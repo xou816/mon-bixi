@@ -1,12 +1,13 @@
 import Konva from "konva";
 import { useRef, useEffect, Children, ReactNode, useState } from "react";
-import { Group, Layer, Rect, Text } from "react-konva";
+import { Group, Layer, Path, Rect, Text } from "react-konva";
 import { BixiBike } from "./bike";
 import { useStories } from "./stories";
-import { TextConfig } from "konva/lib/shapes/Text";
 import { StatsDetail } from "./stats";
 import { Node } from "konva/lib/Node";
 import { GroupConfig } from "konva/lib/Group";
+import { arrondissementPolys } from "./data/data.compile";
+import { MontrealMap } from "./mtl";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
 const titleStyle = {
@@ -63,31 +64,30 @@ function VStack({ children, ...rest }: { children: ReactNode } & GroupConfig) {
     )
 }
 
-function FullWidthText(props: TextConfig) {
+function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
     const ref = useRef<Node>(null)
     useEffect(() => {
         if (!ref.current) return
         const { width } = ref.current.getClientRect()
-        const scale = 90 / width
+        const scale = toWidth / width
         ref.current.scale({ x: scale, y: scale })
     }, [])
-    return <Text {...props} ref={ref as any} />
+    return <Group {...rest} ref={ref as any} />
 }
 
 function PageGroup({ children }: { children: ReactNode }) {
     const { activePage: page } = useStories();
-    const groupRef = useRef(null);
+    const groupRef = useRef<Node>(null);
     useEffect(() => {
         if (!groupRef.current) return;
-        const tween = new Konva.Tween({
+        groupRef.current.to({
             node: groupRef.current,
             duration: 0.3,
             x: -page * 100,
             easing: Konva.Easings.EaseOut
         });
-        tween.play();
     }, [page]);
-    return <Group ref={groupRef}>{children}</Group>
+    return <Group ref={groupRef as any}>{children}</Group>
 }
 
 function Page({ index, children }: { index: number, children: ReactNode }) {
@@ -100,9 +100,10 @@ const pageColors = [
     "#bee1f0"
 ]
 
-export function MonBixiStory({ stats }: { stats: StatsDetail }) {
+
+export function MonBixiStory({ height, stats }: { width: number, height: number, stats: StatsDetail }) {
     const { activePage: page } = useStories();
-    const { totalHoursYearly } = stats;
+    const { totalHoursYearly, mostVisitedBorough } = stats;
     const bixiBike = useRef<Node>(null);
     const background = useRef<Node>(null);
 
@@ -121,13 +122,13 @@ export function MonBixiStory({ stats }: { stats: StatsDetail }) {
 
     return (
         <Layer listening={false}>
-            <Rect ref={background as any} x={0} y={0} width={100} height={200} fill={pageColors[0]} />
+            <Rect ref={background as any} x={0} y={0} width={100} height={height} fill={pageColors[0]} />
             <PageGroup>
                 <Page index={0}>
                     <VStack x={5} y={8}>
-                        <FullWidthText {...titleStyle} text="Mon année" />
-                        <FullWidthText {...titleStyle} fill="black" text="2025" />
-                        <FullWidthText {...titleStyle} text="avec Bixi" />
+                        <Resize toWidth={90}><Text {...titleStyle} text="Mon année" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="black" text="2025" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} text="avec Bixi" /></Resize>
                     </VStack>
                 </Page>
 
@@ -138,9 +139,19 @@ export function MonBixiStory({ stats }: { stats: StatsDetail }) {
                         x={4}
                         y={12} />
                 </Page>
+
+                <Page index={2}>
+                    <Text
+                        {...titleStyle}
+                        text={`Ton hood, c'est ${mostVisitedBorough}.`}
+                        x={4}
+                        y={12} />
+                    <Resize toWidth={90}><MontrealMap highlight={mostVisitedBorough} /></Resize>
+                </Page>
             </PageGroup>
 
-            <BixiBike ref={bixiBike as any} x={0} y={30} scale={1} />
+            <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={30} scale={1} />
+            <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />
         </Layer>
     );
 }

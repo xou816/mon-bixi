@@ -54,7 +54,7 @@ export function MonBixiDialog() {
         <dialog ref={dialogRef} className={classes.rootDialog} closedby="any">
             <StoriesSlideshow {...storiesProps}>
                 <Stage width={clientWidth} height={clientHeight} scale={{ x: clientWidth / 100, y: clientWidth / 100 }}>
-                    <MonBixiStory stats={stats ?? {} as StatsDetail} />
+                    <MonBixiStory width={100} height={clientHeight * 100 / clientWidth} stats={stats ?? {} as StatsDetail} />
                 </Stage>
                 {/* <StartButton /> */}
             </StoriesSlideshow>

@@ -15,20 +15,24 @@ function computeArrondissementsMeshes() {
     return arrondissements.features.map(({ properties, geometry }) => {
         if (geometry.type !== "MultiPolygon") throw new Error()
         const polys = geometry.coordinates
-        const meshes = polys.map((poly) => {
+        if (polys.length > 1) console.log(`Warning: ${properties.NOM} has multiple polys!`)
+        const simplePolys = polys.map((poly) => {
             const [exterior, ...holes] = poly
             if (holes.length > 0) console.log(`Warning: ${properties.NOM} has holes!`)
-            const simplified = simplify(exterior.map(([x, y]) => ({ x, y })), 1e-3)
-            const shape = new Shape(simplified.map(({ x, y }) => new Vector2(x, y)))
+            return simplify(exterior.map(([x, y]) => ({ x, y })), 1e-3)
+        })
+        const meshes = simplePolys.map((poly) => {
+            const shape = new Shape(poly.map(({ x, y }) => new Vector2(x, y)))
             const geometry = new ExtrudeGeometry(shape, { bevelEnabled: false });
             geometry.computeBoundingBox()
             return new Mesh(geometry, new MeshBasicMaterial())
         })
-        return { name: properties.NOM, meshes }
+        return { name: properties.NOM, meshes, simplePolys }
     })
 }
 
 const arrondissementsMeshes = computeArrondissementsMeshes()
+export const arrondissementPolys = arrondissementsMeshes.map(({ name, simplePolys }) => ({ name, simplePolys }))
 
 function enrichStation(station: Station): EnrichedStation {
     const { lon, lat } = station
