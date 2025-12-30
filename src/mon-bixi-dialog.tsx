@@ -1,62 +1,40 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useRideStoreTx } from "./db";
+import { useEffect, useRef, useState } from "react";
+import { useIndexDb } from "./db";
 import { useOpenMonBixi } from "./extension";
 import classes from "./extension.module.css";
 import { fetchRidesAsNeeded } from "./import";
 import { getOrComputeStats, StatsDetail } from "./stats";
-import { Stories, useStoriesSlideshow } from "./stories";
-import { Layer, Text } from "react-konva";
-import { TextConfig } from "konva/lib/shapes/Text";
-import { BixiBike } from "./bike";
-import Konva from "konva";
+import { StoriesSlideshow, useStories, useStoriesSlideshow } from "./stories";
+import { Stage } from "react-konva";
+import { MonBixiStory } from "./story-content";
 
-const StatsContext = createContext<StatsDetail>({} as StatsDetail)
-export const useStats = () => useContext(StatsContext)
-
-export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60")
-
-const Title = (props: TextConfig) => <Text
-    fontSize={30}
-    fontStyle="bold"
-    fontFamily="LyftProUI"
-    fill={colorRed60}
-    {...props} />
-
-function MonBixiStory({ page }: { page: number }) {
-    const { totalHoursYearly } = useStats()
-    const group = useRef()
-
-    useEffect(() => {
-        if (!group.current) return
-        const tween = new Konva.Tween({
-            node: group.current,
-            duration: 0.5,
-            x: -400 + page * 1000,
-            easing: Konva.Easings.EaseOut
-        })
-        tween.play()
-    }, [page])
-
-    return (
-        <Layer listening={false}>
-            <Title
-                text={page === 0 ? "Mon année en Bixi" : `${totalHoursYearly} heures à vélo !`}
-                x={16}
-                y={32} />
-            <BixiBike groupRef={group} x={-400} y={0} scale={4} />
-        </Layer>
-    )
+function StartButton() {
+    const { playing, activePage } = useStories()
+    const visible = !playing && activePage === 0
+    return visible && <button className={classes.startButton}>C'est parti !</button>
 }
 
 export function MonBixiDialog() {
+    const [{ clientWidth, clientHeight }, setClientSize] = useState({ clientWidth: 0, clientHeight: 0 })
     const dialogRef = useRef<HTMLDialogElement>(null)
+
+    const observer = useRef(new ResizeObserver(() => {
+        if (!dialogRef.current) return
+        const { clientWidth, clientHeight } = dialogRef.current
+        setClientSize({ clientWidth, clientHeight })
+    }))
+
+    useEffect(() => {
+        if (!dialogRef.current) return
+        dialogRef.current.addEventListener("close", () => setOpen(false))
+        observer.current.observe(dialogRef.current)
+    })
+
     const [open, setOpen] = useState(false)
-    const [stats, setStats] = useState<StatsDetail>({} as StatsDetail);
+    const [stats, setStats] = useState<StatsDetail>();
+    const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration: 5_000, pageCount: 3 })
 
-    const duration = 5_000
-    const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration, pageCount: 2 })
-
-    useRideStoreTx(async (db) => {
+    useIndexDb(async (db) => {
         await fetchRidesAsNeeded(db)
         const freshStats = await getOrComputeStats(db)
         setStats((stats) => ({ ...stats, ...freshStats.stats }))
@@ -68,17 +46,18 @@ export function MonBixiDialog() {
     });
 
     useEffect(() => {
-        if (stats != undefined && open) setPlaying(true)
+        if (stats) setPlaying(open)
     }, [open, stats])
+
 
     return (
         <dialog ref={dialogRef} className={classes.rootDialog} closedby="any">
-            <StatsContext.Provider value={stats}>
-                <Stories
-                    {...storiesProps}
-                    renderPage={(page) => <MonBixiStory page={page} />}
-                    duration={duration} />
-            </StatsContext.Provider>
+            <StoriesSlideshow {...storiesProps}>
+                <Stage width={clientWidth} height={clientHeight} scale={{ x: clientWidth / 100, y: clientWidth / 100 }}>
+                    <MonBixiStory stats={stats ?? {} as StatsDetail} />
+                </Stage>
+                {/* <StartButton /> */}
+            </StoriesSlideshow>
         </dialog>
     );
 }

@@ -1,4 +1,4 @@
-import { DbHandle, findRides, findStats, STATS_STORE } from "./db";
+import { DbHandle, STATS_STORE } from "./db";
 import { END_OF_YEAR, START_OF_YEAR } from "./import";
 import { Location } from "./queries";
 import { boroughPerStation } from "./data/data.compile";
@@ -28,13 +28,13 @@ function frequencyTable<T>(data: T[], categorize: (t: T) => string[]): FreqTable
 }
 
 export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
-    const rides = await findRides(db)
+    const rides = await db.findRides()
         .filterKeys(IDBKeyRange.bound(START_OF_YEAR, END_OF_YEAR))
         .descKeys()
         .get()
     const timeMs = rides[rides.length - 1]?.startTimeMs ?? 0
 
-    let stats = await findStats(db).getKey(timeMs)
+    let stats = await db.findStats().getKey(timeMs)
     // if (stats) return stats
 
     const s = {

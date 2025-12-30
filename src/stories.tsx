@@ -1,6 +1,7 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, CSSProperties, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import classes from "./extension.module.css";
-import { Stage } from "react-konva";
+
+const asClassName = (classTab: { [k: string]: boolean }) => Object.entries(classTab).reduce((str, [klass, active]) => `${str} ${active ? klass : ""}`.trimEnd(), "")
 
 type TimeoutData = {
     timeout: ReturnType<typeof setTimeout> | undefined,
@@ -8,10 +9,9 @@ type TimeoutData = {
     elapsed: number // elapsed time, computed when pausing
 }
 
-
 export function useStoriesSlideshow({ pageCount, duration }: { pageCount: number, duration: number }) {
     const [{ playing, activePage }, setPlayState] = useState({
-        activePage: -1,
+        activePage: 0,
         playing: false,
     })
 
@@ -58,11 +58,10 @@ export function useStoriesSlideshow({ pageCount, duration }: { pageCount: number
         }
     }, [[playing, activePage]])
 
-    return { playing, activePage, setPlaying, setPage, togglePlaying, pageCount }
+    return { playing, activePage, setPlaying, setPage, togglePlaying, pageCount, duration }
 }
 
-const asClassName = (classTab: { [k: string]: boolean }) => Object.entries(classTab).reduce((str, [klass, active]) => `${str} ${active ? klass : ""}`.trimEnd(), "")
-
+type CSSStoryProperties = { "--stepperTiming"?: string } & CSSProperties
 type StoriesProps = {
     playing: boolean,
     activePage: number,
@@ -70,19 +69,20 @@ type StoriesProps = {
     setPage: (p: number) => void,
     togglePlaying: () => void,
     pageCount: number,
-    renderPage: (p: number) => JSX.Element
+    children: ReactNode
 }
 
-export function Stories({ playing, activePage, duration, setPage, togglePlaying, renderPage, pageCount }: StoriesProps) {
-    type CSSStoryProperties = { "--stepperTiming": string } & CSSProperties
+const StoriesContext = createContext({ activePage: 0, playing: false })
+export const useStories = () => useContext(StoriesContext)
+
+export function StoriesSlideshow({ playing, activePage, duration, setPage, togglePlaying, pageCount, children }: StoriesProps) {
     const stepperStyle = useMemo(() => ({ "--stepperTiming": `${duration}ms` } as CSSStoryProperties), [duration])
-    const container = useRef<HTMLDivElement>(null)
 
     return (
-        <div className={classes.stories} ref={container}>
-            <Stage width={container.current?.clientWidth ?? 0} height={container.current?.clientHeight ?? 0}>
-                {renderPage(activePage)}
-            </Stage>
+        <>
+            <StoriesContext.Provider value={{ activePage, playing }}>
+                {children}
+            </StoriesContext.Provider>
             <nav className={classes.stepper} style={stepperStyle}>
                 {Array.from({ length: pageCount }).map((_, index) => {
                     const classNames = {
@@ -95,6 +95,6 @@ export function Stories({ playing, activePage, duration, setPage, togglePlaying,
                 })}
             </nav>
             <button className={classes.pauseButton} onClick={() => togglePlaying()}>{playing ? <>&#10073;&#10073;</> : <>&#9658;</>}</button>
-        </div>
+        </>
     )
 }

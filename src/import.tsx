@@ -1,4 +1,4 @@
-import { DbHandle, findRides, RIDES_STORE } from "./db";
+import { DbHandle, RIDES_STORE } from "./db";
 import { queryHistory, Ride } from "./queries";
 
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms))
@@ -35,14 +35,14 @@ async function fetchBatches(db: DbHandle, startOffset: number, continueIf: (cur:
 
 export async function fetchRidesAsNeeded(db: DbHandle) {
     const [lastRide, oldestRide, count] = await Promise.all([
-        findRides(db).descKeys().getOne(),
-        findRides(db).ascKeys().getOne(),
-        findRides(db).count(),
+        db.findRides().descKeys().getOne(),
+        db.findRides().ascKeys().getOne(),
+        db.findRides().count(),
     ]);
     const lastRideMs = lastRide?.startTimeMs ?? 0;
     const oldestRideMs = oldestRide?.startTimeMs ?? 0;
 
-    return
+    // return
 
     await fetchBatches(db, 0, ({ hasMore, newestRideMs }) => newestRideMs > lastRideMs && hasMore && newestRideMs >= START_OF_YEAR);
 

@@ -55,14 +55,19 @@ async function getStore(store: string, mode: IDBTransactionMode) {
 }
 
 export type DbHandle = {
-    createTx: (store: string, mode: IDBTransactionMode) => Promise<IDBObjectStore>
+    createTx: (store: string, mode: IDBTransactionMode) => Promise<IDBObjectStore>,
+    findRides: () => IndexDBQuery<Ride>,
+    findStats: () => IndexDBQuery<Stats>,
 }
 
-export function useRideStoreTx(callback: (h: DbHandle) => void) {
+export function useIndexDb(callback: (h: DbHandle) => void) {
     useEffect(() => {
-        callback({
-            createTx: (store, mode) => getStore(store, mode)
-        })
+        const handle: DbHandle = {
+            createTx: (store, mode) => getStore(store, mode),
+            findRides: () => new IndexDBQuery<Ride>(handle, RIDES_STORE),
+            findStats: () => new IndexDBQuery<Stats>(handle, STATS_STORE),
+        }
+        callback(handle)
     }, [])
 }
 
@@ -131,6 +136,3 @@ class IndexDBQuery<R> {
         return promise
     }
 }
-
-export const findRides = (db: DbHandle) => new IndexDBQuery<Ride>(db, RIDES_STORE)
-export const findStats = (db: DbHandle) => new IndexDBQuery<Stats>(db, STATS_STORE)

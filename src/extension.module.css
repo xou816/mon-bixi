@@ -141,3 +141,21 @@
     font-size: 1.25em;
     cursor: pointer;
 }
+
+
+.startButton {
+    position: absolute;
+    top: 30%;
+    left: 0;
+    width: 200px;
+    text-align: center;
+    font-weight: bold;
+    margin: 36px calc(0.5 * (100% - 200px));
+    border-radius: 48px;
+    padding: 24px;
+    background: var(--core-ui-color-red60);
+    color: white;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+}
