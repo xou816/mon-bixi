@@ -9,8 +9,10 @@
     "watch": "vite build --watch --mode development"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "konva": "^10.0.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-konva": "^19.2.1",
     "simplify-js": "^1.2.4",
     "three": "^0.182.0"
   },

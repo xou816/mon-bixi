@@ -121,6 +121,11 @@
     }
 }
 
+.stories {
+    width: 100%;
+    height: 100%;
+}
+
 .storyPage {
     margin: 36px 12px;
 }

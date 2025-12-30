@@ -1,5 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import classes from "./extension.module.css";
+import { Stage } from "react-konva";
 
 type TimeoutData = {
     timeout: ReturnType<typeof setTimeout> | undefined,
@@ -7,13 +8,8 @@ type TimeoutData = {
     elapsed: number // elapsed time, computed when pausing
 }
 
-export type Story = {
-    id: string,
-    render: () => JSX.Element,
-}
 
-export function useStoriesSlideshow({ pages, duration }: { pages: Story[], duration: number }) {
-    const pageCount = pages.length
+export function useStoriesSlideshow({ pageCount, duration }: { pageCount: number, duration: number }) {
     const [{ playing, activePage }, setPlayState] = useState({
         activePage: -1,
         playing: false,
@@ -62,7 +58,7 @@ export function useStoriesSlideshow({ pages, duration }: { pages: Story[], durat
         }
     }, [[playing, activePage]])
 
-    return { playing, activePage, setPlaying, setPage, togglePlaying, pages }
+    return { playing, activePage, setPlaying, setPage, togglePlaying, pageCount }
 }
 
 const asClassName = (classTab: { [k: string]: boolean }) => Object.entries(classTab).reduce((str, [klass, active]) => `${str} ${active ? klass : ""}`.trimEnd(), "")
@@ -73,30 +69,32 @@ type StoriesProps = {
     duration: number,
     setPage: (p: number) => void,
     togglePlaying: () => void,
-    pages: Story[]
+    pageCount: number,
+    renderPage: (p: number) => JSX.Element
 }
 
-export function Stories({ playing, activePage, duration, setPage, togglePlaying, pages }: StoriesProps) {
+export function Stories({ playing, activePage, duration, setPage, togglePlaying, renderPage, pageCount }: StoriesProps) {
     type CSSStoryProperties = { "--stepperTiming": string } & CSSProperties
     const stepperStyle = useMemo(() => ({ "--stepperTiming": `${duration}ms` } as CSSStoryProperties), [duration])
+    const container = useRef<HTMLDivElement>(null)
 
     return (
-        <>
+        <div className={classes.stories} ref={container}>
+            <Stage width={container.current?.clientWidth ?? 0} height={container.current?.clientHeight ?? 0}>
+                {renderPage(activePage)}
+            </Stage>
             <nav className={classes.stepper} style={stepperStyle}>
-                {pages.map((page, index) => {
+                {Array.from({ length: pageCount }).map((_, index) => {
                     const classNames = {
                         [classes.stepperItem]: true,
                         [classes.stepperItemActive]: activePage === index,
                         [classes.stepperItemActivePaused]: activePage === index && !playing,
                         [classes.stepperItemDone]: activePage > index
                     }
-                    return <a onClick={() => setPage(index)} key={page.id} className={asClassName(classNames)}></a>
+                    return <a onClick={() => setPage(index)} key={index} className={asClassName(classNames)}></a>
                 })}
             </nav>
             <button className={classes.pauseButton} onClick={() => togglePlaying()}>{playing ? <>&#10073;&#10073;</> : <>&#9658;</>}</button>
-            <section className={classes.storyPage} key={activePage}>
-                {pages[activePage]?.render()}
-            </section>
-        </>
+        </div>
     )
 }
