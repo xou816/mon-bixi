@@ -17,7 +17,7 @@ type FreqTable = { [k: string]: number } & { _mostFrequent: string }
 
 function frequencyTable<T>(data: T[], categorize: (t: T) => string[]): FreqTable {
     return data.reduce((freqTable, t) => {
-        const categorized = categorize(t)
+        const categorized = new Set(categorize(t))
         for (const cat of categorized) {
             freqTable[cat] = 1 + (freqTable[cat] ?? 0)
             const c = freqTable[freqTable._mostFrequent] ?? 0
@@ -50,12 +50,17 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
         ])
     }
 
+    const { _mostFrequent: mostVisitedBorough, ...mostVisitedBoroughs } = s.mostVisitedBoroughs
+    const { _mostFrequent: mostUsedStation, ...mostUsedStations } = s.mostUsedStations
     const s2 = {
         ...s,
         totalHoursYearly: Math.floor(s.rideTimeMs.reduce((sum, timeMs) => sum + timeMs, 0) / 1000 / 3600),
-        mostUsedStation: s.mostUsedStations._mostFrequent,
+        mostUsedStation,
+        mostUsedStations,
         totalDistanceYearly: Math.floor(1e-3 * s.rideEstimatedDistance.reduce((sum, dist) => sum + dist, 0)),
-        mostVisitedBorough: s.mostVisitedBoroughs._mostFrequent
+        mostVisitedBorough,
+        mostVisitedBoroughs,
+        averageRideTimeMs: s.rideTimeMs.reduce((avg, time) => avg + time * 1/rides.length, 0)
     }
 
     stats = { timeMs, stats: s2 }
@@ -67,6 +72,7 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
 export type StatsDetail = {
     rideCountYearly: number,
     rideTimeMs: number[],
+    averageRideTimeMs: number,
     mostUsedStations: { [k: string]: number },
     rideEstimatedDistance: number[],
     mostVisitedBoroughs: { [k: string]: number }

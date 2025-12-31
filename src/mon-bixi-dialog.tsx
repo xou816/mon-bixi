@@ -6,12 +6,10 @@ import { fetchRidesAsNeeded } from "./import";
 import { getOrComputeStats, StatsDetail } from "./stats";
 import { StoriesSlideshow, useStories, useStoriesSlideshow } from "./stories";
 import { Stage } from "react-konva";
-import { MonBixiStory } from "./story-content";
+import { StoryContent } from "./story-content";
 
-function StartButton() {
-    const { playing, activePage } = useStories()
-    const visible = !playing && activePage === 0
-    return visible && <button className={classes.startButton}>C'est parti !</button>
+function Loading({ isLoading }: { isLoading: boolean }) {
+    return isLoading && <div className={classes.loadingIndicator}>Analyse de vos déplacements...</div>
 }
 
 export function MonBixiDialog() {
@@ -37,7 +35,7 @@ export function MonBixiDialog() {
     useIndexDb(async (db) => {
         await fetchRidesAsNeeded(db)
         const freshStats = await getOrComputeStats(db)
-        setStats((stats) => ({ ...stats, ...freshStats.stats }))
+        setStats(freshStats.stats)
     })
 
     useOpenMonBixi(() => {
@@ -52,12 +50,12 @@ export function MonBixiDialog() {
 
     return (
         <dialog ref={dialogRef} className={classes.rootDialog} closedby="any">
-            <StoriesSlideshow {...storiesProps}>
+            {stats && <StoriesSlideshow {...storiesProps}>
                 <Stage width={clientWidth} height={clientHeight} scale={{ x: clientWidth / 100, y: clientWidth / 100 }}>
-                    <MonBixiStory width={100} height={clientHeight * 100 / clientWidth} stats={stats ?? {} as StatsDetail} />
+                    <StoryContent width={100} height={clientHeight * 100 / clientWidth} stats={stats} />
                 </Stage>
-                {/* <StartButton /> */}
-            </StoriesSlideshow>
+            </StoriesSlideshow>}
+            <Loading isLoading={stats === undefined} />
         </dialog>
     );
 }

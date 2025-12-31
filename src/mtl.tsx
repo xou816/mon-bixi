@@ -1,44 +1,82 @@
-import { Group, Path } from "react-konva"
-import { arrondissementPolys } from "./data/data.compile"
-import { useRef, useEffect, memo } from "react"
+import { Group, Path, Shape } from "react-konva"
+import { arrondissementPolys, montrealPolys } from "./data/data.compile"
+import { useRef, useEffect, memo, useMemo } from "react"
 import { Node } from "konva/lib/Node"
 import { colorRed60 } from "./story-content"
+import { Context } from "konva/lib/Context"
+import { boundingBox } from "./data/utils"
+import { ShapeConfig } from "konva/lib/Shape"
 
-const geoPolyAsPath = (poly: { x: number, y: number }[]) => {
-    const path = poly.reduce((path, { x, y }, i) => `${path}${i === 0 ? "M" : "L"} ${100 * (74 + x)} ${100 * (46 - y)} `, "")
-    // console.log(path)
-    return path
+const MARGIN = 5
+
+type PathFn = (ctx: Context) => void
+type BBox = ReturnType<typeof boundingBox>
+
+function geoPolyAsPath(poly: { x: number, y: number }[], bbox: BBox): PathFn {
+    const aspect = bbox.height / bbox.width
+    const scale = 100 / bbox.width
+    const adjust = (x: number, y: number) => [scale * (x - bbox.minX), 100 * aspect - scale * (y - bbox.minY)] as [number, number]
+    return (ctx) => {
+        const [{ x, y }, ...next] = poly
+        ctx.moveTo(...adjust(x, y))
+        next.forEach(({ x, y }) => ctx.lineTo(...adjust(x, y)))
+    }
 }
 
-const Borough = memo(({ name, poly, fill }: { name: string, poly: { x: number, y: number }[], fill: string }) => {
-    if (fill === "black") console.log(name, geoPolyAsPath(poly))
-    return <Path
+const Borough = memo(({ pathFn, bbox, ...rest }: { name: string, pathFn: PathFn, bbox: BBox } & ShapeConfig) => {
+    const aspect = bbox.height / bbox.width
+    return <Shape
         perfectDrawEnabled={false}
-        data={geoPolyAsPath(poly)}
-        stroke={fill}
-        strokeWidth={.5}
-        fill={fill} />
+        sceneFunc={(ctx, shape) => {
+            ctx.beginPath()
+            pathFn(ctx);
+            ctx.fillStrokeShape(shape);
+        }}
+        width={100 + MARGIN * 2}
+        height={100 * aspect + MARGIN * 2}
+        {...rest} />
 })
 
-export function MontrealMap({ highlight }: { highlight?: string }) {
+function computePolys(highlights: { [key: string]: number }) {
+    const maxHighlights = Object.values(highlights).reduce((max, v) => Math.max(max, v), 0)
+
+    const montrealBbox = boundingBox(montrealPolys[0])
+    const bgPolys = montrealPolys
+        .map((poly, i) => <Borough
+            key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{x: .6, y: .6}} shadowColor="#aaa" shadowBlur={.4}
+            bbox={montrealBbox} pathFn={geoPolyAsPath(poly, montrealBbox)} />)
+
+    const fgPolys = arrondissementPolys
+        .filter(({ name }) => highlights[name] !== undefined)
+        .map(({ name, simplePolys }) => {
+            const opacity = highlights[name] / maxHighlights
+            return <Borough
+                key={name} name={name}
+                bbox={montrealBbox} pathFn={geoPolyAsPath(simplePolys[0], montrealBbox)}
+                fill={colorRed60} opacity={opacity} />
+        })
+
+    return { montrealBbox, bgPolys, fgPolys }
+}
+
+export function MontrealMap({ highlights }: { highlights: { [key: string]: number } }) {
     const mapRef = useRef<Node>(null)
     useEffect(() => {
         if (!mapRef.current) return
         mapRef.current.cache({ pixelRatio: 10 })
-    }, [highlight])
+    }, [highlights])
 
-    const bgPolys = arrondissementPolys
-        .filter(({ name }) => name !== highlight)
-        .map(({ name, simplePolys }) => <Borough key={name} name={name} poly={simplePolys[0]} fill="white" />)
-
-    const fgPolys = arrondissementPolys
-        .filter(({ name }) => name === highlight)
-        .map(({ name, simplePolys }) => <Borough key={name} name={name} poly={simplePolys[0]} fill={colorRed60} />)
+    const { montrealBbox, bgPolys, fgPolys } = useMemo(() => computePolys(highlights), [highlights])
 
     return (
-        <Group offsetX={-2} ref={mapRef as any}>
+        <Group
+            ref={mapRef as any}
+            offsetY={-MARGIN} offsetX={-MARGIN}>
             {bgPolys}
-            {fgPolys}
+            <Group clipFunc={(ctx) => {
+                ctx.beginPath()
+                montrealPolys.forEach((poly) => geoPolyAsPath(poly, montrealBbox)(ctx))
+            }}>{fgPolys}</Group>
         </Group>
     )
 }

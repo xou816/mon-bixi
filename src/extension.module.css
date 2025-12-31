@@ -159,3 +159,15 @@
     font-size: 1.5em;
     cursor: pointer;
 }
+
+.loadingIndicator {
+    position: absolute;
+    top: 30%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    margin: 0;
+    color: #222;
+    border: none;
+    font-size: 1.5em;
+}

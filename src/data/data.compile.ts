@@ -1,7 +1,9 @@
-import arrondissements from './arrondissements.json' // from https://donnees.montreal.ca/fr/dataset/limites-administratives-agglomeration
 import stations from './stations.json' // from https://gbfs.velobixi.com/gbfs/fr/station_information.json
+import arrondissementsGeojson from './arrondissements.json' // from https://donnees.montreal.ca/fr/dataset/limites-administratives-agglomeration
+import montrealGeojson from './limites-terrestres.json' // from https://www.donneesquebec.ca/recherche/dataset/vmtl-limites-terrestres/resource/92cb062a-11be-4222-9ea5-867e7e64c5ff
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Shape, Vector2, Vector3 } from "three"
 import simplify from "simplify-js"
+import { boundingBox } from './utils'
 
 type Station = {
     name: string,
@@ -12,7 +14,7 @@ type Station = {
 type EnrichedStation = Station & { arrondissement: string }
 
 function computeArrondissementsMeshes() {
-    return arrondissements.features.map(({ properties, geometry }) => {
+    return arrondissementsGeojson.features.map(({ properties, geometry }) => {
         if (geometry.type !== "MultiPolygon") throw new Error()
         const polys = geometry.coordinates
         if (polys.length > 1) console.log(`Warning: ${properties.NOM} has multiple polys!`)
@@ -33,6 +35,25 @@ function computeArrondissementsMeshes() {
 
 const arrondissementsMeshes = computeArrondissementsMeshes()
 export const arrondissementPolys = arrondissementsMeshes.map(({ name, simplePolys }) => ({ name, simplePolys }))
+
+function computeMontealPolys() {
+    return montrealGeojson.features
+        .map(({ geometry }) => {
+            if (geometry.type !== "MultiPolygon") throw new Error()
+            const poly = geometry.coordinates[0]
+            const [exterior, ...holes] = poly
+            const extPoly = exterior.map(([x, y]) => ({ x, y }))
+            const bbox = boundingBox(extPoly)
+            const area = (bbox.maxY - bbox.minY) * (bbox.maxX - bbox.minX)
+            return { poly: extPoly, area }
+        })
+        .filter(({ area }) =>  area > 1e-4)
+        .map(({ poly }) => simplify(poly, 2e-3))
+        .sort((a, b) => b.length - a.length)
+}
+
+export const montrealPolys = computeMontealPolys()
+console.log(`Montreal with ${montrealPolys.length} polys, largest: ${montrealPolys[0].length} vertices`)
 
 function enrichStation(station: Station): EnrichedStation {
     const { lon, lat } = station

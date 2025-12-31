@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState } from "react";
+import { useRef, useEffect, Children, ReactNode, useState, DependencyList } from "react";
 import { Group, Layer, Path, Rect, Text } from "react-konva";
 import { BixiBike } from "./bike";
 import { useStories } from "./stories";
@@ -17,9 +17,15 @@ const titleStyle = {
     fill: colorRed60
 }
 
+const bodyStyle = {
+    fontSize: 3,
+    fontStyle: "bold",
+    fontFamily: "ProximaNova",
+    fill: "#444"
+}
 
-function VStack({ children, ...rest }: { children: ReactNode } & GroupConfig) {
-    const { playing } = useStories();
+function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNode, animateOnPage?: number } & GroupConfig) {
+    const { playing, activePage } = useStories();
     const [offsets, setOffsets] = useState<number[]>([])
     const refs = useRef<Node[]>([])
 
@@ -34,26 +40,25 @@ function VStack({ children, ...rest }: { children: ReactNode } & GroupConfig) {
 
     // staggered entrance :)
     useEffect(() => {
-        if (!playing || !refs.current) return
+        if (!refs.current || animateOnPage === undefined || !(playing && animateOnPage === activePage)) return
         const dur = 500
         new Konva.Animation((frame) => {
             const curTime = Math.floor(frame.time / dur)
             refs.current.forEach((ref, i) => {
-                const val = curTime > i ? 1 :
-                    curTime === i ? (frame.time % dur) / dur :
-                        0
-                ref.setAttr("opacity", val)
+                const val = curTime - i + (frame.time % dur) / dur
+                const clamped = Math.max(0, Math.min(1, val))
+                ref.setAttr("opacity", clamped)
             })
             return curTime <= refs.current.length
         }).start()
-    }, [playing])
+    }, [playing, activePage, animateOnPage])
 
     return (
         <Group {...rest}>
             {
                 Children.map(children, (child, i) => (
                     <Group
-                        opacity={0}
+                        opacity={animateOnPage === undefined ? 1 : 0}
                         ref={r => refs.current[i] = r as Node}
                         offsetY={-(offsets[i] ?? 0)}>
                         {child}
@@ -101,9 +106,8 @@ const pageColors = [
 ]
 
 
-export function MonBixiStory({ height, stats }: { width: number, height: number, stats: StatsDetail }) {
+export function StoryContent({ height, stats }: { width: number, height: number, stats: StatsDetail }) {
     const { activePage: page } = useStories();
-    const { totalHoursYearly, mostVisitedBorough } = stats;
     const bixiBike = useRef<Node>(null);
     const background = useRef<Node>(null);
 
@@ -125,33 +129,46 @@ export function MonBixiStory({ height, stats }: { width: number, height: number,
             <Rect ref={background as any} x={0} y={0} width={100} height={height} fill={pageColors[0]} />
             <PageGroup>
                 <Page index={0}>
-                    <VStack x={5} y={8}>
+                    <VerticalStack x={5} y={12} animateOnPage={0}>
                         <Resize toWidth={90}><Text {...titleStyle} text="Mon année" /></Resize>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="black" text="2025" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#222" text="2025" /></Resize>
                         <Resize toWidth={90}><Text {...titleStyle} text="avec Bixi" /></Resize>
-                    </VStack>
+                    </VerticalStack>
                 </Page>
 
                 <Page index={1}>
-                    <Text
-                        {...titleStyle}
-                        text={`${totalHoursYearly} heures à vélo !`}
-                        x={4}
-                        y={12} />
+                    <VerticalStack x={5} y={12} animateOnPage={1}>
+                        <Text {...titleStyle} width={90} text={[
+                            `Cette année, on a passé ${stats.totalHoursYearly} heures ensemble.`,
+                            `Pas mal, non ?`
+                        ].join("\n")} />
+                        <Text
+                            width={90} offsetY={-5} {...bodyStyle}
+                            text={[
+                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTimeMs / 1000 / 60)} minutes`,
+                            ].join("\n")} />
+                    </VerticalStack>
+
                 </Page>
 
                 <Page index={2}>
-                    <Text
-                        {...titleStyle}
-                        text={`Ton hood, c'est ${mostVisitedBorough}.`}
-                        x={4}
-                        y={12} />
-                    <Resize toWidth={90}><MontrealMap highlight={mostVisitedBorough} /></Resize>
+                    <VerticalStack x={5} y={12} animateOnPage={2}>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#222" text="Ton quartier, c'est" /></Resize>
+                        <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
+                        <Resize toWidth={95} offsetX={5}>
+                            <MontrealMap highlights={stats.mostVisitedBoroughs} /></Resize>
+                        <Text
+                            width={90} offsetY={-5} {...bodyStyle}
+                            text={[
+                                `Station la plus utilisée : ${stats.mostUsedStation}`,
+                                `Nombre de trajets à ${stats.mostVisitedBorough} : ${stats.mostVisitedBoroughs[stats.mostVisitedBorough]}`
+                            ].join("\n")} />
+                    </VerticalStack>
                 </Page>
             </PageGroup>
 
-            <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={30} scale={1} />
-            <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />
+            <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={35} scale={1} />
+            {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
         </Layer>
     );
 }
