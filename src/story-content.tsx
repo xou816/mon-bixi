@@ -131,7 +131,7 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                 <Page index={0}>
                     <VerticalStack x={5} y={12} animateOnPage={0}>
                         <Resize toWidth={90}><Text {...titleStyle} text="Mon année" /></Resize>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#222" text="2025" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={stats.year.toString()} /></Resize>
                         <Resize toWidth={90}><Text {...titleStyle} text="avec Bixi" /></Resize>
                     </VerticalStack>
                 </Page>
@@ -145,7 +145,7 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                         <Text
                             width={90} offsetY={-5} {...bodyStyle}
                             text={[
-                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTimeMs / 1000 / 60)} minutes`,
+                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTimeMs / 60)} minutes`,
                             ].join("\n")} />
                     </VerticalStack>
 
@@ -153,7 +153,7 @@ export function StoryContent({ height, stats }: { width: number, height: number,
 
                 <Page index={2}>
                     <VerticalStack x={5} y={12} animateOnPage={2}>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#222" text="Ton quartier, c'est" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text="Ton quartier, c'est" /></Resize>
                         <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
                         <Resize toWidth={95} offsetX={5}>
                             <MontrealMap highlights={stats.mostVisitedBoroughs} /></Resize>
@@ -161,7 +161,7 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                             width={90} offsetY={-5} {...bodyStyle}
                             text={[
                                 `Station la plus utilisée : ${stats.mostUsedStation}`,
-                                `Nombre de trajets à ${stats.mostVisitedBorough} : ${stats.mostVisitedBoroughs[stats.mostVisitedBorough]}`
+                                `Nombre de trajets depuis/vers ${stats.mostVisitedBorough} : ${stats.mostVisitedBoroughs[stats.mostVisitedBorough]}`
                             ].join("\n")} />
                     </VerticalStack>
                 </Page>

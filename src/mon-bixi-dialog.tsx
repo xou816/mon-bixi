@@ -12,7 +12,7 @@ function Loading({ isLoading }: { isLoading: boolean }) {
     return isLoading && <div className={classes.loadingIndicator}>Analyse de vos déplacements...</div>
 }
 
-export function MonBixiDialog() {
+export function MonBixiDialog({ year }: { year: number }) {
     const [{ clientWidth, clientHeight }, setClientSize] = useState({ clientWidth: 0, clientHeight: 0 })
     const dialogRef = useRef<HTMLDialogElement>(null)
 
@@ -33,8 +33,8 @@ export function MonBixiDialog() {
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration: 5_000, pageCount: 3 })
 
     useIndexDb(async (db) => {
-        await fetchRidesAsNeeded(db)
-        const freshStats = await getOrComputeStats(db)
+        await fetchRidesAsNeeded(db, year)
+        const freshStats = await getOrComputeStats(db, year)
         setStats(freshStats.stats)
     })
 

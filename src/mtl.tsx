@@ -43,7 +43,7 @@ function computePolys(highlights: { [key: string]: number }) {
     const montrealBbox = boundingBox(montrealPolys[0])
     const bgPolys = montrealPolys
         .map((poly, i) => <Borough
-            key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{x: .6, y: .6}} shadowColor="#aaa" shadowBlur={.4}
+            key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{x: .6, y: .6}} shadowColor="#aaa" shadowBlur={.6}
             bbox={montrealBbox} pathFn={geoPolyAsPath(poly, montrealBbox)} />)
 
     const fgPolys = arrondissementPolys

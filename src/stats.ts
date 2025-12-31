@@ -1,7 +1,7 @@
 import { DbHandle, STATS_STORE } from "./db";
-import { END_OF_YEAR, START_OF_YEAR } from "./import";
-import { Location } from "./queries";
-import { boroughPerStation } from "./data/data.compile";
+import { yearBounds } from "./import";
+import { Location, Ride } from "./queries";
+import { detailedStations } from "./data/data.compile";
 
 const EARTH_RADIUS = 6161e3
 const haversineDeg = (theta: number) => Math.sin(rad(theta) / 2) ** 2
@@ -27,9 +27,84 @@ function frequencyTable<T>(data: T[], categorize: (t: T) => string[]): FreqTable
     }, {} as FreqTable)
 }
 
-export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
+// inneficient but will do for now
+function findClosestStation(loc: Location, radius: number = 300) {
+    return Object.values(detailedStations)
+        .reduce((acc, { name, arrondissement, ...s }, i) => {
+            if (acc) return acc
+            const distance = sphericalDist({ lat: s.lon, lng: s.lat }, loc)
+            return distance < radius ? { name, distance, arrondissement } : null;
+        }, null as { name: string, arrondissement: string, distance: number } | null)
+}
+
+function findBoroughForStation(station: string, loc: Location, radius: number = 300): string {
+    if (detailedStations[station]) {
+        const { lat, lon } = detailedStations[station]
+        const dist = sphericalDist({ lat, lng: lon }, { lat: loc.lng ?? 0, lng: loc.lat ?? 0 })
+        if (dist < radius)
+            return detailedStations[station].arrondissement
+    }
+    const closest = findClosestStation(loc)
+    return closest?.arrondissement ?? "Inconnu"
+}
+
+function fixStationName(station: string, loc: Location, radius: number = 500) {
+    if (detailedStations[station]) {
+        const { lat, lon } = detailedStations[station]
+        const dist = sphericalDist({ lng: lon, lat }, { lat: loc.lng ?? 0, lng: loc.lat ?? 0 })
+        if (dist < radius) return station
+    }
+
+    const found = findClosestStation(loc, radius)
+    // a pseudo hash to keep them "unique"
+    const id = (1e6 * (loc.lat + loc.lng)).toString().substring(3, 7)
+
+    console.warn(`${station} is probably wrong, found close station ${found?.name} in ${found?.arrondissement}`)
+    if (found) return `Station inconnue #${id} (${found?.arrondissement})`
+    return `Station inconnue`
+}
+
+function computeAllRidesPhysicalStats(rides: Ride[]) {
+    const all = rides.map((ride) => computePhysicalStats(ride)).filter((it) => it !== null)
+    const avgSpeed = all.reduce((avg, { speed }) => avg + speed * 1 / all.length, 0)
+    return all.map((stats) => {
+        const { distance, duration } = stats
+        if (distance === 0) {
+            return {
+                distance: 0.75 * avgSpeed * duration,
+                speed: avgSpeed,
+                duration,
+            }
+        } else {
+            return stats
+        }
+    })
+}
+
+function computePhysicalStats(ride: Ride) {
+    const { startAddressStr, endAddressStr, startAddress, endAddress, startTimeMs, endTimeMs } = ride
+
+    let distance = 0
+    if (startAddressStr !== endAddressStr) {
+        const midPoint = { ...startAddress, lat: endAddress.lat }
+        distance = sphericalDist(startAddress, midPoint)
+            + sphericalDist(midPoint, endAddress)
+    }
+
+    let duration = (parseInt(endTimeMs, 10) - parseInt(startTimeMs, 10)) / 1000
+    if (Number.isNaN(duration)) {
+        console.warn("Ride is problematic", ride)
+        return null
+    }
+
+    const speed = distance / duration
+    return { distance, duration, speed }
+}
+
+export async function getOrComputeStats(db: DbHandle, year: number): Promise<Stats> {
+    const [startOfYear, endOfYear] = yearBounds(year)
     const rides = await db.findRides()
-        .filterKeys(IDBKeyRange.bound(START_OF_YEAR, END_OF_YEAR))
+        .filterKeys(IDBKeyRange.bound(startOfYear, endOfYear))
         .descKeys()
         .get()
     const timeMs = rides[rides.length - 1]?.startTimeMs ?? 0
@@ -38,15 +113,16 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
     // if (stats) return stats
 
     const s = {
+        year,
         rideCountYearly: rides.length,
-        rideTimeMs: rides.map(({ startTimeMs, endTimeMs }) => parseInt(endTimeMs, 10) - parseInt(startTimeMs, 10)),
-        mostUsedStations: frequencyTable(rides, ({ startAddressStr, endAddressStr }) => [startAddressStr, endAddressStr]),
-        rideEstimatedDistance: rides.map(({ startAddress, endAddress }) => (
-            sphericalDist(startAddress, { ...startAddress, lat: endAddress.lat })
-            + sphericalDist({ ...startAddress, lat: endAddress.lat }, endAddress))),
-        mostVisitedBoroughs: frequencyTable(rides, ({ startAddressStr, endAddressStr }) => [
-            boroughPerStation[startAddressStr] ?? "Inconnu",
-            boroughPerStation[endAddressStr] ?? "Inconnu"
+        rideTimeAndDist: computeAllRidesPhysicalStats(rides),
+        mostUsedStations: frequencyTable(rides, ({ startAddressStr, startAddress, endAddressStr, endAddress }) => [
+            fixStationName(startAddressStr, startAddress),
+            fixStationName(endAddressStr, endAddress)
+        ]),
+        mostVisitedBoroughs: frequencyTable(rides, ({ startAddressStr, startAddress, endAddressStr, endAddress }) => [
+            findBoroughForStation(startAddressStr, startAddress),
+            findBoroughForStation(endAddressStr, endAddress)
         ])
     }
 
@@ -54,13 +130,13 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
     const { _mostFrequent: mostUsedStation, ...mostUsedStations } = s.mostUsedStations
     const s2 = {
         ...s,
-        totalHoursYearly: Math.floor(s.rideTimeMs.reduce((sum, timeMs) => sum + timeMs, 0) / 1000 / 3600),
+        totalHoursYearly: Math.floor(s.rideTimeAndDist.reduce((sum, { duration }) => sum + duration, 0) / 3600),
         mostUsedStation,
         mostUsedStations,
-        totalDistanceYearly: Math.floor(1e-3 * s.rideEstimatedDistance.reduce((sum, dist) => sum + dist, 0)),
+        totalDistanceYearly: Math.floor(1e-3 * s.rideTimeAndDist.reduce((sum, { distance }) => sum + distance, 0)),
         mostVisitedBorough,
         mostVisitedBoroughs,
-        averageRideTimeMs: s.rideTimeMs.reduce((avg, time) => avg + time * 1/rides.length, 0)
+        averageRideTimeMs: s.rideTimeAndDist.reduce((avg, { duration }) => avg + duration * 1 / s.rideTimeAndDist.length, 0)
     }
 
     stats = { timeMs, stats: s2 }
@@ -70,11 +146,11 @@ export async function getOrComputeStats(db: DbHandle): Promise<Stats> {
 }
 
 export type StatsDetail = {
+    year: number,
     rideCountYearly: number,
-    rideTimeMs: number[],
+    rideTimeAndDist: { distance: number, speed: number, duration: number }[],
     averageRideTimeMs: number,
     mostUsedStations: { [k: string]: number },
-    rideEstimatedDistance: number[],
     mostVisitedBoroughs: { [k: string]: number }
     totalHoursYearly: number,
     mostUsedStation: string,

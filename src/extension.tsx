@@ -38,7 +38,7 @@ function ensureReactDialogInjected(): HTMLElement {
         <>
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=pause,play_arrow" />
             <link rel="stylesheet" type="text/css" href={browser.runtime.getURL("mon-bixi.css")} />
-            <MonBixiDialog />
+            <MonBixiDialog year={2025} />
         </>
     );
     return content

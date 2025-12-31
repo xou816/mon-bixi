@@ -74,5 +74,5 @@ function enrichStation(station: Station): EnrichedStation {
     }
 }
 
-export const boroughPerStation: { [k: string]: string } = stations.data.stations
-    .reduce((acc, station) => ({ ...acc, [station.name]: enrichStation(station).arrondissement }), {})
+export const detailedStations: { [k: string]: EnrichedStation } = stations.data.stations
+    .reduce((acc, station) => ({ ...acc, [station.name]: enrichStation(station) }), {})
