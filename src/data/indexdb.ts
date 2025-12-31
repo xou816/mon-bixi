@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { Ride } from "./queries";
-import { Stats } from "./stats";
+import { Ride } from "./gql-queries";
+import { Stats } from "./compute-stats";
 
 export const RIDES_STORE = "rides";
 export const STATS_STORE = "stats"

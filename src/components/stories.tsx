@@ -1,5 +1,5 @@
 import { createContext, CSSProperties, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
-import classes from "./extension.module.css";
+import classes from "../extension.module.css";
 
 const asClassName = (classTab: { [k: string]: boolean }) => Object.entries(classTab).reduce((str, [klass, active]) => `${str} ${active ? klass : ""}`.trimEnd(), "")
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useIndexDb } from "./db";
-import { useOpenMonBixi } from "./extension";
-import classes from "./extension.module.css";
-import { fetchRidesAsNeeded } from "./import";
-import { getOrComputeStats, StatsDetail } from "./stats";
+import { useIndexDb } from "../data/indexdb";
+import { useOpenMonBixi } from "../extension";
+import classes from "../extension.module.css";
+import { fetchRidesAsNeeded } from "../data/import-bixi-stats";
+import { getOrComputeStats, StatsDetail } from "../data/compute-stats";
 import { StoriesSlideshow, useStories, useStoriesSlideshow } from "./stories";
 import { Stage } from "react-konva";
 import { StoryContent } from "./story-content";

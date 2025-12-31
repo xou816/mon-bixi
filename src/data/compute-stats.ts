@@ -1,7 +1,7 @@
-import { DbHandle, STATS_STORE } from "./db";
-import { yearBounds } from "./import";
-import { Location, Ride } from "./queries";
-import { detailedStations } from "./data/data.compile";
+import { DbHandle, STATS_STORE } from "./indexdb";
+import { yearBounds } from "./import-bixi-stats";
+import { Location, Ride } from "./gql-queries";
+import { detailedStations } from "./data.compile";
 
 const EARTH_RADIUS = 6161e3
 const haversineDeg = (theta: number) => Math.sin(rad(theta) / 2) ** 2

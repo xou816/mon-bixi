@@ -1,6 +1,6 @@
 import { DependencyList, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { MonBixiDialog } from "./mon-bixi-dialog";
+import { MonBixiDialog } from "./components/mon-bixi-dialog";
 import browser from "webextension-polyfill";
 
 const OPEN_MON_BIXI_EVENT = "openmonbixi"

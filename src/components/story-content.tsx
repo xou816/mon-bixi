@@ -1,13 +1,12 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState, DependencyList } from "react";
-import { Group, Layer, Path, Rect, Text } from "react-konva";
-import { BixiBike } from "./bike";
+import { useRef, useEffect, Children, ReactNode, useState } from "react";
+import { Group, Layer, Rect, Text } from "react-konva";
+import { BixiBike } from "./bixi-bike";
 import { useStories } from "./stories";
-import { StatsDetail } from "./stats";
+import { StatsDetail } from "../data/compute-stats";
 import { Node } from "konva/lib/Node";
 import { GroupConfig } from "konva/lib/Group";
-import { arrondissementPolys } from "./data/data.compile";
-import { MontrealMap } from "./mtl";
+import { MontrealMap } from "./montreal-map";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
 const titleStyle = {

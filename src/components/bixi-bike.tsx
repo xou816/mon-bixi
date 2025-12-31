@@ -1,4 +1,4 @@
-import { Group, Layer, Path } from "react-konva";
+import { Group, Path } from "react-konva";
 import { colorRed60 } from "./story-content";
 import { DependencyList, RefObject, useEffect, useRef, useState } from "react";
 import Konva from "konva";

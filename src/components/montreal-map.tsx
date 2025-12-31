@@ -1,10 +1,10 @@
 import { Group, Path, Shape } from "react-konva"
-import { arrondissementPolys, montrealPolys } from "./data/data.compile"
+import { arrondissementPolys, montrealPolys } from "../data/data.compile"
 import { useRef, useEffect, memo, useMemo } from "react"
 import { Node } from "konva/lib/Node"
 import { colorRed60 } from "./story-content"
 import { Context } from "konva/lib/Context"
-import { boundingBox } from "./data/utils"
+import { boundingBox } from "../data/utils"
 import { ShapeConfig } from "konva/lib/Shape"
 
 const MARGIN = 5

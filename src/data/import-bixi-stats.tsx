@@ -1,5 +1,5 @@
-import { DbHandle, RIDES_STORE } from "./db";
-import { queryHistory, Ride } from "./queries";
+import { DbHandle, RIDES_STORE } from "./indexdb";
+import { queryHistory, Ride } from "./gql-queries";
 
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms))
 
