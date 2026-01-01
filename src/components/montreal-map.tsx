@@ -1,16 +1,14 @@
 import { Group, Path, Shape } from "react-konva"
-import { arrondissementPolys, montrealPolys } from "../data/data.compile"
+import { arrondissementPolys, BBox, montrealBbox, montrealPolys } from "../data/data.compile"
 import { useRef, useEffect, memo, useMemo } from "react"
 import { Node } from "konva/lib/Node"
 import { colorRed60 } from "./story-content"
 import { Context } from "konva/lib/Context"
-import { boundingBox } from "../data/utils"
 import { ShapeConfig } from "konva/lib/Shape"
 
 const MARGIN = 5
 
 type PathFn = (ctx: Context) => void
-type BBox = ReturnType<typeof boundingBox>
 
 function geoPolyAsPath(poly: { x: number, y: number }[], bbox: BBox): PathFn {
     const aspect = bbox.height / bbox.width
@@ -40,7 +38,6 @@ const Borough = memo(({ pathFn, bbox, ...rest }: { name: string, pathFn: PathFn,
 function computePolys(highlights: { [key: string]: number }) {
     const maxHighlights = Object.values(highlights).reduce((max, v) => Math.max(max, v), 0)
 
-    const montrealBbox = boundingBox(montrealPolys[0])
     const bgPolys = montrealPolys
         .map((poly, i) => <Borough
             key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{x: .6, y: .6}} shadowColor="#aaa" shadowBlur={.6}

@@ -4,7 +4,7 @@ import { useOpenMonBixi } from "../extension";
 import classes from "../extension.module.css";
 import { fetchRidesAsNeeded } from "../data/import-bixi-stats";
 import { getOrComputeStats, StatsDetail } from "../data/compute-stats";
-import { StoriesSlideshow, useStories, useStoriesSlideshow } from "./stories";
+import { StoriesSlideshow, useStoriesSlideshow } from "./stories";
 import { Stage } from "react-konva";
 import { StoryContent } from "./story-content";
 

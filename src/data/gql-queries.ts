@@ -8,7 +8,7 @@ export type MemberWithStats = {
 
 export type Location = {
     lat: number,
-    lng: number
+    lon: number
 }
 
 export type Ride = {
@@ -73,13 +73,13 @@ export async function queryHistory(offset: number): Promise<Data<{ member: Membe
                             endTimeMs
                             startAddressStr
                             startAddress {
-                                lat
-                                lng
+                                lon: lat
+                                lat: lng
                             }
                             endAddressStr
                             endAddress {
-                                lat
-                                lng
+                                lon: lat
+                                lat: lng
                             }
                         }
                     }

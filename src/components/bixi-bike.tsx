@@ -1,16 +1,8 @@
 import { Group, Path } from "react-konva";
 import { colorRed60 } from "./story-content";
-import { DependencyList, RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import Konva from "konva";
 import { Node } from "konva/lib/Node";
-
-const useAnimation = <T extends DependencyList>(animation: Konva.Animation, deps?: T, animate?: (deps: T | never[]) => boolean) => {
-    useEffect(() => {
-        if (animate?.(deps ?? []) === false) animation.stop()
-        else animation.start()
-        return () => { animation.stop() }
-    }, deps)
-}
 
 function FrontWheel({ animated }: { animated: boolean }) {
     const [wheelFrame, setWheelFrame] = useState(0)
@@ -73,7 +65,12 @@ export function BixiBike({ x, y, scale, animated, ref: groupRef }: { x: number; 
         const cos = 5 * Math.cos(frame.time * 1e-3)
         groupRef.current.setAttr("offsetX", cos)
     }, groupRef.current?.getLayer()))
-    useAnimation(animation.current, [animated], ([animated]) => animated)
+
+    useEffect(() => {
+        if (!animated) animation.current.stop()
+        else animation.current.start()
+        return () => { animation.current.stop() }
+    }, [animated])
 
     return (
         <Group ref={groupRef as any} offsetY={50} x={x} y={y} scaleX={scale} scaleY={scale}>

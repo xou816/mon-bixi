@@ -17,7 +17,7 @@ const titleStyle = {
 }
 
 const bodyStyle = {
-    fontSize: 3,
+    fontSize: 4,
     fontStyle: "bold",
     fontFamily: "ProximaNova",
     fill: "#444"
@@ -144,7 +144,7 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                         <Text
                             width={90} offsetY={-5} {...bodyStyle}
                             text={[
-                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTimeMs / 60)} minutes`,
+                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTime / 60)} minutes`,
                             ].join("\n")} />
                     </VerticalStack>
 
