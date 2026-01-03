@@ -9,6 +9,7 @@ import { GroupConfig } from "konva/lib/Group";
 import { MontrealMap } from "./montreal-map";
 import { SnowFall, TextShaky } from "./winter";
 import { useLocale } from "./mon-bixi-dialog";
+import { Ruler } from "./ruler";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
 const titleStyle = {
@@ -134,7 +135,89 @@ function Page({ children, color }: { children: ReactNode, color: string }) {
     return <Group x={index * 100}>{children}</Group>
 }
 
-export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 4 : 5
+export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 5 : 6
+
+function HomePage({ stats }: { stats: StatsDetail }) {
+    const _ = useLocale()
+    const { index } = useContext(PageIndex)
+    return (
+        <Page color="#f5b9e1">
+            <VerticalStack x={5} y={12} animateOnPage={index}>
+                {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => (
+                    <Resize key={text} toWidth={90}>
+                        <Text {...titleStyle} fill={/\d/.test(text.trim()) ? "#333" : colorRed60} text={text.trim()} />
+                    </Resize>
+                ))}
+            </VerticalStack>
+        </Page>
+    )
+}
+
+function TimeSpentPage({ stats }: { stats: StatsDetail }) {
+    const _ = useLocale()
+    const { index } = useContext(PageIndex)
+    return (
+        <Page color="#f5f596">
+            <VerticalStack x={5} y={12} animateOnPage={index}>
+                <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", Math.round(stats.totalTimeYearly / 3600))} />
+                <Text
+                    width={90} offsetY={-5} {...bodyStyle}
+                    text={_("tripAverage", Math.round(stats.averageRideTime / 60))} />
+            </VerticalStack>
+        </Page>
+    )
+}
+
+function MostVisitedPage({ stats }: { stats: StatsDetail }) {
+    const _ = useLocale()
+    const { activePage: page } = useStories();
+    const { index } = useContext(PageIndex)
+    return (
+        <Page color="#bee1f0">
+            <VerticalStack x={5} y={12} animateOnPage={index}>
+                <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
+                <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
+                <Text
+                    width={90} offsetY={-75} {...bodyStyle}
+                    text={[
+                        _("mostUsedStation", stats.mostUsedStation),
+                        _("tripsFromTo", stats.mostVisitedBorough, stats.mostVisitedBoroughs[stats.mostVisitedBorough])
+                    ].join("\n")} />
+            </VerticalStack>
+            <Resize toWidth={95} offsetX={5}>
+                <MontrealMap offsetX={-5} offsetY={-60} animate={page === index} highlights={stats.mostVisitedBoroughs} />
+            </Resize>
+        </Page>
+    )
+}
+
+function TravelledPage({ stats }: { stats: StatsDetail }) {
+    const _ = useLocale()
+    const { activePage: page } = useStories();
+    const { index } = useContext(PageIndex)
+    return (
+        <Page color="#febd97">
+            <Text x={5} y={55} width={70} {...titleStyle} fill="#333" text={_("youRode")} />
+            <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={page === index} fill="white" />
+        </Page>
+    )
+}
+
+function WinterPage({ stats }: { stats: StatsDetail }) {
+    const _ = useLocale()
+    const { activePage: page } = useStories();
+    const { index } = useContext(PageIndex)
+    return (
+        <Page color="#bec8ff">
+            <SnowFall animate={page === index} />
+            <VerticalStack x={5} y={25} animateOnPage={index}>
+                <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={_("winter")} /></Resize>
+                <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={_("notEvenCold")} /></Resize>
+                <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={_("winterTrips", stats.winterRides)} />
+            </VerticalStack>
+        </Page>
+    )
+}
 
 export function StoryContent({ height, stats, ref }: { width: number, height: number, stats: StatsDetail, ref: Ref<HTMLCanvasElement> }) {
     const { activePage: page } = useStories();
@@ -154,51 +237,11 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
     return (
         <Layer ref={ref as any} listening={false}>
             <PageGroup height={height}>
-                <Page color="#f5b9e1">
-                    <VerticalStack x={5} y={12} animateOnPage={0}>
-                        {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => (
-                            <Resize key={text} toWidth={90}>
-                                <Text {...titleStyle} fill={/\d/.test(text.trim()) ? "#333" : colorRed60} text={text.trim()} />
-                            </Resize>
-                        ))}
-                    </VerticalStack>
-                </Page>
-
-                <Page color="#f5f596">
-                    <VerticalStack x={5} y={12} animateOnPage={1}>
-                        <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", Math.round(stats.totalTimeYearly / 3600))} />
-                        <Text
-                            width={90} offsetY={-5} {...bodyStyle}
-                            text={_("tripAverage", Math.round(stats.averageRideTime / 60))} />
-                    </VerticalStack>
-
-                </Page>
-
-                <Page color="#bee1f0">
-                    <VerticalStack x={5} y={12} animateOnPage={2}>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
-                        <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
-                        <Text
-                            width={90} offsetY={-75} {...bodyStyle}
-                            text={[
-                                _("mostUsedStation", stats.mostUsedStation),
-                                _("tripsFromTo", stats.mostVisitedBorough, stats.mostVisitedBoroughs[stats.mostVisitedBorough])
-                            ].join("\n")} />
-                    </VerticalStack>
-                    <Resize toWidth={95} offsetX={5}>
-                        <MontrealMap offsetX={-5} offsetY={-60} animate={page === 2} highlights={stats.mostVisitedBoroughs} />
-                    </Resize>
-                </Page>
-
-                {stats.winterRides > 0 && <Page color="#bec8ff">
-                    <SnowFall animate={page === 3} />
-                    <VerticalStack x={5} y={25} animateOnPage={3}>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={_("winter")} /></Resize>
-                        <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={_("notEvenCold")} /></Resize>
-                        <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={_("winterTrips", stats.winterRides)} />
-                    </VerticalStack>
-                </Page>}
-
+                <HomePage stats={stats} />
+                <TimeSpentPage stats={stats} />
+                <MostVisitedPage stats={stats} />
+                <TravelledPage stats={stats} />
+                {stats.winterRides > 0 && <WinterPage stats={stats} />}
                 <Page color="#f5b9e1">
                     <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />
                 </Page>

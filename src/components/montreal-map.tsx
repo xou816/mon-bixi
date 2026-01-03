@@ -30,6 +30,7 @@ const GeoShape = memo(({ pathFn, bbox, ref, cached, ...rest }: { cached?: boolea
         const _ref = ref as MutableRefObject<Node> | undefined
         _ref?.current?.cache({ pixelRatio: 10 })
     }, [cached])
+    
     return <Shape
         ref={ref as any}
         perfectDrawEnabled={false}
@@ -52,19 +53,17 @@ function computePolys(highlights: { [key: string]: number }) {
             key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{ x: .6, y: .6 }} shadowColor="#aaa" shadowBlur={.6}
             bbox={montrealBbox} pathFn={geoPolyAsPath(poly, montrealBbox)} />)
 
-    const relevantBoroughs = arrondissementPolys
+    const fgPolysProps = arrondissementPolys
         .filter(({ name }) => highlights[name] !== undefined)
-
-    const fgPolysProps = relevantBoroughs
         .map(({ name, simplePolys }) => {
-            const opacity = highlights[name] / maxHighlights
+            const targetOpacity = highlights[name] / maxHighlights
             return {
                 name,
                 bbox: montrealBbox,
                 pathFn: geoPolyAsPath(simplePolys[0], montrealBbox),
                 fill: colorRed60,
                 opacity: 0,
-                targetOpacity: opacity,
+                targetOpacity,
             }
         })
         .toSorted((a, b) => b.targetOpacity - a.targetOpacity)

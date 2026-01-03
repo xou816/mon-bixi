@@ -1,5 +1,5 @@
 import { Node } from "konva/lib/Node";
-import { Path, Shape, Text } from "react-konva";
+import { Shape, Text } from "react-konva";
 import { TextConfig } from "konva/lib/shapes/Text";
 import { useEffect, useRef } from "react";
 import { Context } from "konva/lib/Context";
