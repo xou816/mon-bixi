@@ -5,7 +5,7 @@ import classes from "../extension.module.css";
 import { getLastStats, getUpdatedStats, StatsDetail } from "../data/compute-stats";
 import { StoriesSlideshow, useStories, useStoriesSlideshow } from "./stories";
 import { Stage } from "react-konva";
-import { StoryContent } from "./story-content";
+import { pageCount, StoryContent } from "./story-content";
 import { translate } from "./translations";
 
 function Loading({ loadingProgress }: { loadingProgress: number }) {
@@ -15,7 +15,7 @@ function Loading({ loadingProgress }: { loadingProgress: number }) {
 
 type Download = { filename: string, url: string, id: number }
 
-function DownloadButton({ downloadList }: { downloadList: Download[] }) {
+function DownloadButton({ downloadList, showOnPage }: { showOnPage: number, downloadList: Download[] }) {
     const _ = useLocale()
     const { activePage } = useStories()
 
@@ -32,7 +32,7 @@ function DownloadButton({ downloadList }: { downloadList: Download[] }) {
         }
     }
 
-    return activePage === 4 && <a ref={a}
+    return activePage === showOnPage && <a ref={a}
         className={classes.bigButton}
         onClick={(e) => onClick(e)}
         href={downloadList[index]?.url}
@@ -69,7 +69,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     const [downloadsList, setDownloads] = useState<Download[]>([])
 
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({
-        duration: 4_000, pageCount: 5,
+        duration: 4_000, pageCount: pageCount(stats),
         onBeforeNextPage: (page: number) => {
             if (!canvasRef.current || page === 4 || downloadsList.find(({ id }) => id === page) !== undefined) return
             setDownloads(downloadsList
@@ -119,7 +119,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
                     <Stage width={clientWidth} height={clientHeight} scale={{ x: clientWidth / 100, y: clientWidth / 100 }}>
                         <StoryContent ref={canvasRef} width={100} height={clientHeight * 100 / clientWidth} stats={stats} />
                     </Stage>
-                    <DownloadButton downloadList={downloadsList} />
+                    <DownloadButton showOnPage={pageCount(stats) - 1} downloadList={downloadsList} />
                 </StoriesSlideshow>}
                 {!stats && <Loading loadingProgress={loadingProgress} />}
             </dialog>

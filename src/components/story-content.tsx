@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState, Ref } from "react";
+import { useRef, useEffect, Children, ReactNode, useState, Ref, createContext, useContext, useMemo } from "react";
 import { Group, Layer, Rect, Text } from "react-konva";
 import { BixiBike } from "./bixi-bike";
 import { useStories } from "./stories";
@@ -82,8 +82,18 @@ function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
     return <Group {...rest} ref={ref as any} />
 }
 
-function PageGroup({ children }: { children: ReactNode }) {
+const PageIndex = createContext({ index: 0, setColor: (i: number, color: string) => { } })
+
+function PageGroup({ children, height }: { children: ReactNode, height: number }) {
     const { activePage: page } = useStories();
+
+    const background = useRef<Node>(null);
+    const pageColors = useRef<string[]>(["#f5b9e1"])
+    useEffect(() => {
+        if (!background.current) return
+        background.current.to({ fill: pageColors.current[page % pageColors.current.length] })
+    }, [page]);
+
     const groupRef = useRef<Node>(null);
     useEffect(() => {
         if (!groupRef.current) return;
@@ -94,26 +104,41 @@ function PageGroup({ children }: { children: ReactNode }) {
             easing: Konva.Easings.EaseOut
         });
     }, [page]);
-    return <Group ref={groupRef as any}>{children}</Group>
+
+    const mappedChildren = useMemo(() => {
+        let i = -1
+        return Children.map(children, (child) => {
+            if (child !== null) {
+                i++
+                const ctx = {
+                    index: i,
+                    setColor: (i: number, c: string) => { pageColors.current[0 + i] = c }
+                }
+                return <PageIndex.Provider key={i} value={ctx}>{child}</PageIndex.Provider>
+            }
+        })
+    }, [children])
+
+    return (
+        <>
+            <Rect ref={background as any} x={0} y={0} width={100} height={height} fill={pageColors.current[0]} />
+            <Group ref={groupRef as any}>{mappedChildren}</Group>
+        </>
+    )
 }
 
-function Page({ index, children }: { index: number, children: ReactNode }) {
+function Page({ children, color }: { children: ReactNode, color: string }) {
+    const { index, setColor } = useContext(PageIndex)
+    useEffect(() => { setColor(index, color) }, [color])
     return <Group x={index * 100}>{children}</Group>
 }
 
-const pageColors = [
-    "#f5b9e1",
-    "#f5f596",
-    "#bee1f0",
-    "#bec8ff"
-]
-
+export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 4 : 5
 
 export function StoryContent({ height, stats, ref }: { width: number, height: number, stats: StatsDetail, ref: Ref<HTMLCanvasElement> }) {
     const { activePage: page } = useStories();
     const _ = useLocale()
     const bixiBike = useRef<Node>(null);
-    const background = useRef<Node>(null);
 
     useEffect(() => {
         if (!bixiBike.current) return;
@@ -123,16 +148,12 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
             x: - page * 110,
             easing: Konva.Easings.EaseOut
         })
-
-        if (!background.current) return
-        background.current.to({ fill: pageColors[page % pageColors.length] })
     }, [page]);
 
     return (
         <Layer ref={ref as any} listening={false}>
-            <Rect ref={background as any} x={0} y={0} width={100} height={height} fill={pageColors[0]} />
-            <PageGroup>
-                <Page index={0}>
+            <PageGroup height={height}>
+                <Page color="#f5b9e1">
                     <VerticalStack x={5} y={12} animateOnPage={0}>
                         {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => (
                             <Resize key={text} toWidth={90}>
@@ -142,7 +163,7 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
                     </VerticalStack>
                 </Page>
 
-                <Page index={1}>
+                <Page color="#f5f596">
                     <VerticalStack x={5} y={12} animateOnPage={1}>
                         <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", Math.round(stats.totalTimeYearly / 3600))} />
                         <Text
@@ -152,7 +173,7 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
 
                 </Page>
 
-                <Page index={2}>
+                <Page color="#bee1f0">
                     <VerticalStack x={5} y={12} animateOnPage={2}>
                         <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
                         <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
@@ -164,20 +185,20 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
                             ].join("\n")} />
                     </VerticalStack>
                     <Resize toWidth={95} offsetX={5}>
-                        <MontrealMap  offsetX={-5} offsetY={-60} animate={page === 2} highlights={stats.mostVisitedBoroughs} />
+                        <MontrealMap offsetX={-5} offsetY={-60} animate={page === 2} highlights={stats.mostVisitedBoroughs} />
                     </Resize>
                 </Page>
 
-                <Page index={3}>
+                {stats.winterRides > 0 && <Page color="#bec8ff">
                     <SnowFall animate={page === 3} />
                     <VerticalStack x={5} y={25} animateOnPage={3}>
                         <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={_("winter")} /></Resize>
                         <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={_("notEvenCold")} /></Resize>
                         <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={_("winterTrips", stats.winterRides)} />
                     </VerticalStack>
-                </Page>
+                </Page>}
 
-                <Page index={4}>
+                <Page color="#f5b9e1">
                     <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />
                 </Page>
             </PageGroup>
