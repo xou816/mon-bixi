@@ -18,9 +18,9 @@ function generateManifest() {
 export default defineConfig({
   plugins: [
     react(),
+    compileTime(),
     webExtension({
       manifest: generateManifest,
     }),
-    compileTime()
   ],
 });

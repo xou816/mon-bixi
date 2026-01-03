@@ -1,11 +1,14 @@
 import { DbHandle, STATS_STORE } from "./indexdb";
-import { yearBounds } from "./import-bixi-stats";
+import { fetchRidesAsNeeded, yearBounds } from "./import-bixi-stats";
 import { Location, Ride } from "./gql-queries";
-import { detailedStations } from "./data.compile";
+import { detailedStations, EnrichedStation, montrealBbox } from "./data.compile";
+import { Box, Circle, Point, QuadTree } from "js-quadtree";
+import { distance } from "fastest-levenshtein"
 
 const EARTH_RADIUS = 6161e3
 const haversineDeg = (theta: number) => Math.sin(rad(theta) / 2) ** 2
 const rad = (theta: number) => theta / 180 * Math.PI
+const deg = (theta: number) => theta / Math.PI * 180
 const cosDeg = (theta: number) => Math.cos(rad(theta))
 
 function sphericalDist(a: Location, b: Location): Dimen<"m"> {
@@ -27,18 +30,29 @@ function frequencyTable<T>(data: T[], categorize: (t: T) => string[]): FreqTable
     }, {} as FreqTable)
 }
 
-function average<T>(series: T[], valuePath: (t: T) => number) {
-    return series.reduce((avg, t) => avg + valuePath(t) * 1 / series.length, 0)
+function average<T, U extends Unit>(series: T[], valuePath: (t: T) => Dimen<U>) {
+    return sum(series, valuePath) * 1 / series.length as Dimen<U>
 }
 
-// inneficient but will do for now
-function findClosestStation(loc: Location, radius: number = 300) {
-    return Object.values(detailedStations)
-        .reduce((acc, { name, arrondissement, ...s }, i) => {
-            if (acc) return acc
-            const distance = sphericalDist(s, loc)
-            return distance < radius ? { name, distance, arrondissement } : null;
-        }, null as { name: string, arrondissement: string, distance: number } | null)
+function sum<T, U extends Unit>(series: T[], valuePath: (t: T) => Dimen<U>) {
+    return series.reduce((sum, t) => sum + valuePath(t), 0) as Dimen<U>
+}
+
+function fillQuadTree() {
+    const { minX, minY, width, height } = montrealBbox
+    const box = new Box(minX, minY, width, height)
+    const tree = new QuadTree(box)
+    for (const station of Object.values(detailedStations)) {
+        tree.insert(new Point(station.lon, station.lat, station))
+    }
+    return tree
+}
+
+const montrealTree = fillQuadTree()
+
+function findClosestStation(loc: Location, radius: number) {
+    const res = montrealTree.query(new Circle(loc.lon, loc.lat, deg(radius / EARTH_RADIUS)))
+    return res[0]?.data as EnrichedStation | undefined
 }
 
 function findBoroughForStation(station: string, loc: Location, radius: number = 300): string {
@@ -48,11 +62,11 @@ function findBoroughForStation(station: string, loc: Location, radius: number = 
         if (dist < radius)
             return detailedStations[station].arrondissement
     }
-    const closest = findClosestStation(loc)
+    const closest = findClosestStation(loc, radius)
     return closest?.arrondissement ?? "Inconnu"
 }
 
-function fixStationName(station: string, loc: Location, radius: number = 500) {
+function fixStationName(station: string, loc: Location, radius: number = 300) {
     if (detailedStations[station]) {
         const { lat, lon } = detailedStations[station]
         const dist = sphericalDist({ lon, lat }, loc)
@@ -63,8 +77,12 @@ function fixStationName(station: string, loc: Location, radius: number = 500) {
     // a pseudo hash to keep them "unique"
     const id = (1e6 * (loc.lat + loc.lon)).toString().substring(3, 7)
 
-    console.warn(`${station} is probably wrong, found close station ${found?.name} in ${found?.arrondissement}`)
-    if (found) return `Station inconnue #${id} (${found?.arrondissement})`
+    if (found) {
+        console.info(`${station} is probably wrong, but found close station ${found.name} in ${found.arrondissement}`)
+        return distance(station, found.name) < 5 ? found.name : `Station inconnue #${id} (${found.arrondissement})`
+    } else {
+        console.warn(`${station} is probably wrong`)
+    }
     return `Station inconnue`
 }
 
@@ -76,7 +94,7 @@ function computeAllRidesPhysicalStats(rides: Ride[]) {
         if (distance === 0) {
             return {
                 distance: 0.75 * avgSpeed * duration as Dimen<"m">,
-                speed: avgSpeed as Dimen<"m/s">,
+                speed: avgSpeed,
                 duration: duration as Dimen<"s">,
             }
         } else {
@@ -105,7 +123,21 @@ function computePhysicalStats(ride: Ride) {
     return { distance, duration, speed }
 }
 
-export async function getOrComputeStats(db: DbHandle, year: number): Promise<Stats> {
+export async function getLastStats(db: DbHandle, year: number): Promise<Stats | undefined> {
+    const [startOfYear, endOfYear] = yearBounds(year)
+    let stats = await db.findStats()
+        .filterKeys(IDBKeyRange.bound(startOfYear, endOfYear))
+        .descKeys()
+        .getOne()
+    return stats
+}
+
+export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerator<number, Stats, void> {
+
+    for await (const progress of fetchRidesAsNeeded(db, year)) {
+        yield progress
+    }
+
     const [startOfYear, endOfYear] = yearBounds(year)
     const rides = await db.findRides()
         .filterKeys(IDBKeyRange.bound(startOfYear, endOfYear))
@@ -134,18 +166,21 @@ export async function getOrComputeStats(db: DbHandle, year: number): Promise<Sta
     const { _mostFrequent: mostUsedStation, ...mostUsedStations } = s.mostUsedStations
     const s2 = {
         ...s,
-        totalHoursYearly: Math.floor(s.rideTimeAndDist.reduce((sum, { duration }) => sum + duration, 0) / 3600),
+        totalTimeYearly: sum(s.rideTimeAndDist, t => t.duration),
         mostUsedStation,
         mostUsedStations,
-        totalDistanceYearly: Math.floor(1e-3 * s.rideTimeAndDist.reduce((sum, { distance }) => sum + distance, 0)),
+        totalDistanceYearly: sum(s.rideTimeAndDist, t => t.distance),
         mostVisitedBorough,
         mostVisitedBoroughs,
-        averageRideTime: average(s.rideTimeAndDist, t => t.duration) as Dimen<"s">
+        averageRideTime: average(s.rideTimeAndDist, t => t.duration)
     }
 
     stats = { timeMs, stats: s2 }
     const tx = await db.createTx(STATS_STORE, "readwrite")
     tx.put(stats)
+
+    yield 1
+
     return stats
 }
 
@@ -159,11 +194,10 @@ export type StatsDetail = {
     averageRideTime: Dimen<"s">,
     mostUsedStations: { [k: string]: number },
     mostVisitedBoroughs: { [k: string]: number }
-    totalHoursYearly: number,
+    totalTimeYearly: Dimen<"s">,
     mostUsedStation: string,
-    totalDistanceYearly: number,
+    totalDistanceYearly: Dimen<"m">,
     mostVisitedBorough: string,
-    [key: string]: unknown
 }
 
 export type Stats = {

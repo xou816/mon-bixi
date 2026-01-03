@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useIndexDb } from "../data/indexdb";
 import { useOpenMonBixi } from "../extension";
 import classes from "../extension.module.css";
-import { fetchRidesAsNeeded } from "../data/import-bixi-stats";
-import { getOrComputeStats, StatsDetail } from "../data/compute-stats";
+import { getLastStats, getUpdatedStats, StatsDetail } from "../data/compute-stats";
 import { StoriesSlideshow, useStoriesSlideshow } from "./stories";
 import { Stage } from "react-konva";
 import { StoryContent } from "./story-content";
 
-function Loading({ isLoading }: { isLoading: boolean }) {
-    return isLoading && <div className={classes.loadingIndicator}>Analyse de vos déplacements...</div>
+function Loading({ loadingProgress }: { loadingProgress: number }) {
+    return loadingProgress < 100 && <div className={classes.loadingIndicator}>Analyse de vos déplacements... {loadingProgress}%</div>
 }
 
 export function MonBixiDialog({ year }: { year: number }) {
@@ -29,13 +28,26 @@ export function MonBixiDialog({ year }: { year: number }) {
     })
 
     const [open, setOpen] = useState(false)
+    const [loadingProgress, setLoadingProgress] = useState(0)
     const [stats, setStats] = useState<StatsDetail>();
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration: 5_000, pageCount: 3 })
 
     useIndexDb(async (db) => {
-        await fetchRidesAsNeeded(db, year)
-        const freshStats = await getOrComputeStats(db, year)
-        setStats(freshStats.stats)
+        const oldStats = await getLastStats(db, year)
+        if (oldStats) setStats(oldStats.stats)
+
+        const latestStats = getUpdatedStats(db, year)
+        let done = false
+        while (!done) {
+            const next = await latestStats.next();
+            done = next.done ?? true
+            if (next.done) {
+                setLoadingProgress(100)
+                setStats(next.value.stats)
+            } else {
+                setLoadingProgress(Math.floor(next.value * 100))
+            }
+        }
     })
 
     useOpenMonBixi(() => {
@@ -55,7 +67,7 @@ export function MonBixiDialog({ year }: { year: number }) {
                     <StoryContent width={100} height={clientHeight * 100 / clientWidth} stats={stats} />
                 </Stage>
             </StoriesSlideshow>}
-            <Loading isLoading={stats === undefined} />
+            {!stats && <Loading loadingProgress={loadingProgress} />}
         </dialog>
     );
 }

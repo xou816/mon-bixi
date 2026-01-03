@@ -4,13 +4,13 @@ import montrealGeojson from './limites-terrestres.json' // from https://www.donn
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Shape, Vector2, Vector3 } from "three"
 import simplify from "simplify-js"
 
-type Station = {
+export type Station = {
     name: string,
     lat: number,
     lon: number
 }
 
-type EnrichedStation = Station & { arrondissement: string }
+export type EnrichedStation = Station & { arrondissement: string }
 
 function boundingBox(poly: { x: number; y: number; }[]) {
     const xs = poly.map(({ x }) => x);

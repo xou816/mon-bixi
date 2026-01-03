@@ -138,13 +138,13 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                 <Page index={1}>
                     <VerticalStack x={5} y={12} animateOnPage={1}>
                         <Text {...titleStyle} width={90} text={[
-                            `Cette année, on a passé ${stats.totalHoursYearly} heures ensemble.`,
+                            `Cette année, on a passé ${Math.round(stats.totalTimeYearly / 3600)} heures ensemble.`,
                             `Pas mal, non ?`
                         ].join("\n")} />
                         <Text
                             width={90} offsetY={-5} {...bodyStyle}
                             text={[
-                                `Durée moyenne d'un trajet : ${Math.floor(stats.averageRideTime / 60)} minutes`,
+                                `Durée moyenne d'un trajet : ${Math.round(stats.averageRideTime / 60)} minutes`,
                             ].join("\n")} />
                     </VerticalStack>
 
