@@ -9,16 +9,19 @@ type TimeoutData = {
     elapsed: number // elapsed time, computed when pausing
 }
 
-export function useStoriesSlideshow({ pageCount, duration }: { pageCount: number, duration: number }) {
+export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: { pageCount: number, duration: number, onBeforeNextPage?: (oldPage: number) => void }) {
     const [{ playing, activePage }, setPlayState] = useState({
         activePage: 0,
         playing: false,
     })
 
     const setPlaying = (playing: boolean) => setPlayState((s) => ({ ...s, playing, activePage: Math.max(s.activePage, 0) }))
-    const setPage = (page: number) => setPlayState((s) => ({ ...s, playing: true, activePage: Math.min(page, pageCount - 1) }))
-    const nextPage = () => setPlayState((s) => ({ ...s, playing: true, activePage: Math.min(s.activePage + 1, pageCount - 1) }))
-    const togglePlaying = () => setPlayState((s) => ({ ...s, playing: !s.playing, activePage: Math.max(s.activePage, 0) }))
+    const setPage = (page: number) => {
+        onBeforeNextPage?.(activePage)
+        setPlayState((s) => ({ ...s, playing: true, activePage: Math.min(page, pageCount - 1) }))
+    }
+    const nextPage = () => setPage(activePage + 1)
+    const togglePlaying = () => setPlaying(!playing)
 
     const timeoutData = useRef<{ [k: number]: TimeoutData }>({})
 
@@ -69,13 +72,14 @@ type StoriesProps = {
     setPage: (p: number) => void,
     togglePlaying: () => void,
     pageCount: number,
-    children: ReactNode
+    children: ReactNode,
+    close: () => void
 }
 
 const StoriesContext = createContext({ activePage: 0, playing: false })
 export const useStories = () => useContext(StoriesContext)
 
-export function StoriesSlideshow({ playing, activePage, duration, setPage, togglePlaying, pageCount, children }: StoriesProps) {
+export function StoriesSlideshow({ playing, activePage, duration, setPage, togglePlaying, pageCount, children, close }: StoriesProps) {
     const stepperStyle = useMemo(() => ({ "--stepperTiming": `${duration}ms` } as CSSStoryProperties), [duration])
 
     return (
@@ -94,7 +98,10 @@ export function StoriesSlideshow({ playing, activePage, duration, setPage, toggl
                     return <a onClick={() => setPage(index)} key={index} className={asClassName(classNames)}></a>
                 })}
             </nav>
-            <button className={classes.pauseButton} onClick={() => togglePlaying()}>{playing ? <>&#10073;&#10073;</> : <>&#9658;</>}</button>
+            <div className={classes.storiesButtons}>
+                <button className={classes.button} onClick={() => togglePlaying()}>{playing ? <>&#10073;&#10073;</> : <>&#9658;</>}</button>
+                <button style={{ fontWeight: "900" }} className={classes.button} onClick={close}>&#x2715;</button>
+            </div>
         </>
     )
 }

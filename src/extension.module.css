@@ -130,27 +130,36 @@
     margin: 36px 12px;
 }
 
-.pauseButton {
+.storiesButtons {
     position: absolute;
-    top: 0;
-    right: 0;
-    margin: 36px 12px;
-    background: none;
-    border: none;
-    color: var(--storiesColor);
-    font-size: 1.25em;
-    cursor: pointer;
+    top: 24px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+    justify-content: space-between;
+    padding: 0 12px;
+
+    .button {
+        background: none;
+        border: none;
+        color: var(--storiesColor);
+        font-size: 1.25em;
+        cursor: pointer;
+    }
 }
 
 
-.startButton {
+.bigButton {
+    box-sizing: border-box;
     position: absolute;
     top: 30%;
     left: 0;
-    width: 200px;
+    width: 40%;
     text-align: center;
     font-weight: bold;
-    margin: 36px calc(0.5 * (100% - 200px));
+    margin: 36px 30%;
     border-radius: 48px;
     padding: 24px;
     background: var(--core-ui-color-red60);
@@ -158,6 +167,7 @@
     border: none;
     font-size: 1.5em;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .loadingIndicator {

@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState } from "react";
+import { useRef, useEffect, Children, ReactNode, useState, Ref } from "react";
 import { Group, Layer, Rect, Text } from "react-konva";
 import { BixiBike } from "./bixi-bike";
 import { useStories } from "./stories";
@@ -8,6 +8,7 @@ import { Node } from "konva/lib/Node";
 import { GroupConfig } from "konva/lib/Group";
 import { MontrealMap } from "./montreal-map";
 import { SnowFall, TextShaky } from "./winter";
+import { useLocale } from "./mon-bixi-dialog";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
 const titleStyle = {
@@ -47,7 +48,7 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
             refs.current.forEach((ref, i) => {
                 const val = curTime - i + (frame.time % dur) / dur
                 const clamped = Math.max(0, Math.min(1, val))
-                ref.setAttr("opacity", clamped)
+                ref?.setAttr("opacity", clamped)
             })
             return curTime <= refs.current.length
         }).start()
@@ -107,8 +108,9 @@ const pageColors = [
 ]
 
 
-export function StoryContent({ height, stats }: { width: number, height: number, stats: StatsDetail }) {
+export function StoryContent({ height, stats, ref }: { width: number, height: number, stats: StatsDetail, ref: Ref<HTMLCanvasElement> }) {
     const { activePage: page } = useStories();
+    const _ = useLocale()
     const bixiBike = useRef<Node>(null);
     const background = useRef<Node>(null);
 
@@ -126,43 +128,40 @@ export function StoryContent({ height, stats }: { width: number, height: number,
     }, [page]);
 
     return (
-        <Layer listening={false}>
+        <Layer ref={ref as any} listening={false}>
             <Rect ref={background as any} x={0} y={0} width={100} height={height} fill={pageColors[0]} />
             <PageGroup>
                 <Page index={0}>
                     <VerticalStack x={5} y={12} animateOnPage={0}>
-                        <Resize toWidth={90}><Text {...titleStyle} text="Mon année" /></Resize>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={stats.year.toString()} /></Resize>
-                        <Resize toWidth={90}><Text {...titleStyle} text="avec Bixi" /></Resize>
+                        {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => (
+                            <Resize key={text} toWidth={90}>
+                                <Text {...titleStyle} fill={/\d/.test(text.trim()) ? "#333" : colorRed60} text={text.trim()} />
+                            </Resize>
+                        ))}
                     </VerticalStack>
                 </Page>
 
                 <Page index={1}>
                     <VerticalStack x={5} y={12} animateOnPage={1}>
-                        <Text {...titleStyle} width={90} text={[
-                            `Cette année, on a passé ${Math.round(stats.totalTimeYearly / 3600)} heures ensemble.`,
-                            `Pas mal, non ?`
-                        ].join("\n")} />
+                        <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", Math.round(stats.totalTimeYearly / 3600))} />
                         <Text
                             width={90} offsetY={-5} {...bodyStyle}
-                            text={[
-                                `Durée moyenne d'un trajet : ${Math.round(stats.averageRideTime / 60)} minutes`,
-                            ].join("\n")} />
+                            text={_("tripAverage", Math.round(stats.averageRideTime / 60))} />
                     </VerticalStack>
 
                 </Page>
 
                 <Page index={2}>
                     <VerticalStack x={5} y={12} animateOnPage={2}>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text="Ton quartier, c'est" /></Resize>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
                         <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
                         <Resize toWidth={95} offsetX={5}>
                             <MontrealMap highlights={stats.mostVisitedBoroughs} /></Resize>
                         <Text
                             width={90} offsetY={-5} {...bodyStyle}
                             text={[
-                                `Station la plus utilisée : ${stats.mostUsedStation}`,
-                                `Nombre de trajets depuis/vers ${stats.mostVisitedBorough} : ${stats.mostVisitedBoroughs[stats.mostVisitedBorough]}`
+                                _("mostUsedStation", stats.mostUsedStation),
+                                _("tripsFromTo", stats.mostVisitedBorough, stats.mostVisitedBoroughs[stats.mostVisitedBorough])
                             ].join("\n")} />
                     </VerticalStack>
                 </Page>
@@ -170,15 +169,20 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                 <Page index={3}>
                     <SnowFall animate={page === 3} />
                     <VerticalStack x={5} y={25} animateOnPage={3}>
-                        <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={"L'hiver ?"} /></Resize>
-                        <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={"Même pas froid !"} /></Resize>
-                        <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={`Tu as effectué ${stats.winterRides} trajets à Bixi en hiver.`} />
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={_("winter")} /></Resize>
+                        <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={_("notEvenCold")} /></Resize>
+                        <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={_("winterTrips", stats.winterRides)} />
                     </VerticalStack>
+                </Page>
+
+                <Page index={4}>
+                    <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />
                 </Page>
             </PageGroup>
 
             <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={35} scale={1} />
             {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
+            <Text x={5} y={height - 5} fontSize={2} width={90} align="left" fill="gray" text={_("myYearWithBixi")} />
         </Layer>
     );
 }

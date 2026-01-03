@@ -2,6 +2,7 @@ import { DependencyList, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { MonBixiDialog } from "./components/mon-bixi-dialog";
 import browser from "webextension-polyfill";
+import { translate } from "./components/translations";
 
 const OPEN_MON_BIXI_EVENT = "openmonbixi"
 
@@ -24,7 +25,7 @@ export function useOpenMonBixi(handler: () => void, deps: DependencyList = []) {
     }, deps)
 }
 
-function ensureReactDialogInjected(): HTMLElement {
+function ensureReactDialogInjected(lang: "fr" | "en"): HTMLElement {
     const contentId = "mon-bixi";
     let content: HTMLElement | null = document.getElementById(contentId)
     if (content != null) return content
@@ -38,18 +39,20 @@ function ensureReactDialogInjected(): HTMLElement {
         <>
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=pause,play_arrow" />
             <link rel="stylesheet" type="text/css" href={browser.runtime.getURL("mon-bixi.css")} />
-            <MonBixiDialog year={2025} />
+            <MonBixiDialog year={2025} lang={lang} />
         </>
     );
     return content
 }
 
 async function ensureTabInjected() {
-    ensureMobileTabInjected()
-    ensureDesktopTabInjected()
+    const lang = document.querySelector(`a[href^="https://bixi.com/fr/"]`) !== null ? "fr" : "en"
+    ensureMobileTabInjected(lang)
+    ensureDesktopTabInjected(lang)
+    ensureReactDialogInjected(lang)
 }
 
-function setupNav(nav: Element, tabId: string) {
+function setupNav(nav: Element, tabId: string, lang: "fr" | "en") {
     if (document.getElementById(tabId)) return
 
     const allLinks = nav?.querySelectorAll("a[href]")
@@ -66,9 +69,8 @@ function setupNav(nav: Element, tabId: string) {
     newTab.setAttribute("href", "#")
     newTab.id = tabId
     const text = newTab.querySelector("[data-testid=core-ui-text]")
-    if (text) text.textContent = "Mon année avec Bixi"
+    if (text) text.textContent = translate(lang)("myYearWithBixi")
 
-    ensureReactDialogInjected()
 
     const openMonBixi = new CustomEvent(OPEN_MON_BIXI_EVENT);
     newTab.addEventListener("click", () => document.dispatchEvent(openMonBixi))
@@ -76,16 +78,16 @@ function setupNav(nav: Element, tabId: string) {
     nav.appendChild(newTab)
 }
 
-async function ensureMobileTabInjected() {
+async function ensureMobileTabInjected(lang: "fr" | "en") {
     const tabId = "mon-bixi-tab-mobile";
     const nav = await querySelector("[data-testid=mobile] nav *:has(> a[href])")
-    setupNav(nav, tabId)
+    setupNav(nav, tabId, lang)
 }
 
-async function ensureDesktopTabInjected() {
+async function ensureDesktopTabInjected(lang: "fr" | "en") {
     const tabId = "mon-bixi-tab";
     const nav = await querySelector("[data-testid=DATA_TESTID_CONTEXTUAL_NAV]")
-    setupNav(nav, tabId)
+    setupNav(nav, tabId, lang)
 }
 
 function onNextJsUpdate(cb: () => void) {
