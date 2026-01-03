@@ -2,10 +2,12 @@ import { Node } from "konva/lib/Node";
 import { Shape } from "react-konva";
 import { useEffect, useRef } from "react";
 import Konva from "konva";
-import { Easings } from "konva/lib/Tween";
 import { colorRed60 } from "./story-content";
+import { Easings } from "konva/lib/Tween";
 
-function useLoopingAnimation({ animate, duration }: { animate: boolean, factor: number, duration: number }) {
+// could use some cleanup + try to use Easings from Konva
+
+function useLoopingAnimation({ animate, duration }: { animate: boolean, duration: number }) {
     const shapeRef = useRef<Node>(null)
     const drawParams = useRef({
         animationStep: 0,
@@ -23,7 +25,7 @@ function useLoopingAnimation({ animate, duration }: { animate: boolean, factor: 
         const animation = new Konva.Animation((frame) => {
             if (!shapeRef.current) return
             const step = Math.min(1, frame.time / duration)
-            drawParams.current.animationStep = 1 - Math.pow(1 - step, 5)
+            drawParams.current.animationStep = step
             return step < 1
         }, shapeRef.current.getLayer())
 
@@ -37,8 +39,7 @@ function useLoopingAnimation({ animate, duration }: { animate: boolean, factor: 
 function getAnimationParams({ animationStep, canvasHeight, targetValue }: { targetValue: number, animationStep: number, canvasHeight: number }) {
     const segmentCount = 50
     const segmentEvery = 5
-    const increment = canvasHeight * (segmentEvery / segmentCount * animationStep * Math.round(targetValue) - .6)
-
+    const increment = Easings.StrongEaseInOut(animationStep, -.6 * canvasHeight, canvasHeight * (segmentEvery / segmentCount) * Math.round(targetValue), 1)
     const offsetOfIndex = (index: number) => increment + index * canvasHeight / segmentCount
     const pageOfIndex = (index: number) => Math.floor(offsetOfIndex(index) / canvasHeight)
     const valueOfIndex = (index: number) => 1 / segmentEvery * (segmentCount - index + pageOfIndex(index) * segmentCount)
@@ -51,7 +52,7 @@ function getAnimationParams({ animationStep, canvasHeight, targetValue }: { targ
 }
 
 export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue: number, animate: boolean, fill: string, fontFamily?: string }) {
-    const { drawParams, shapeRef } = useLoopingAnimation({ animate, factor: 1, duration: 3_000 })
+    const { drawParams, shapeRef } = useLoopingAnimation({ animate, duration: 3_000 })
     fontFamily = fontFamily ?? "ProximaNova"
 
     return <Shape ref={shapeRef as any}

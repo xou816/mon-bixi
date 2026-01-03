@@ -66,7 +66,7 @@ function computePolys(highlights: { [key: string]: number }) {
                 targetOpacity,
             }
         })
-        .toSorted((a, b) => b.targetOpacity - a.targetOpacity)
+        .toSorted((a, b) => a.targetOpacity - b.targetOpacity)
 
     return { montrealBbox, bgPolys, fgPolysProps }
 }

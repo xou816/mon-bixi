@@ -179,7 +179,8 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
         totalDistanceYearly: sum(s.rideTimeAndDist, t => t.distance),
         mostVisitedBorough,
         mostVisitedBoroughs,
-        averageRideTime: average(s.rideTimeAndDist, t => t.duration)
+        averageRideTime: average(s.rideTimeAndDist, t => t.duration),
+        averageRideDist: average(s.rideTimeAndDist, t => t.distance)
     }
 
     stats = { timeMs, stats: s2 }
@@ -191,6 +192,7 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
     return stats
 }
 
+// for documentation purposes, mostly :)
 type Unit = "m" | "s" | "m/s"
 type Dimen<T extends Unit> = number & { readonly __unit: T };
 
@@ -199,6 +201,7 @@ export type StatsDetail = {
     rideCountYearly: number,
     rideTimeAndDist: { distance: Dimen<"m">, speed: Dimen<"m/s">, duration: Dimen<"s"> }[],
     averageRideTime: Dimen<"s">,
+    averageRideDist: Dimen<"m">,
     mostUsedStations: { [k: string]: number },
     mostVisitedBoroughs: { [k: string]: number }
     totalTimeYearly: Dimen<"s">,

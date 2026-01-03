@@ -199,6 +199,7 @@ function TravelledPage({ stats }: { stats: StatsDetail }) {
         <Page color="#febd97">
             <Text x={5} y={55} width={70} {...titleStyle} fill="#333" text={_("youRode")} />
             <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={page === index} fill="white" />
+            <Text x={5} y={90} width={70} {...bodyStyle} text={_("averageDist", Math.round(stats.averageRideDist / 1_000))} />
         </Page>
     )
 }
