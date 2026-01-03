@@ -29,6 +29,7 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
     const { playing, activePage } = useStories();
     const [offsets, setOffsets] = useState<number[]>([])
     const refs = useRef<Node[]>([])
+    const groupRef = useRef<Node>(null)
 
     useEffect(() => {
         if (!refs.current) return
@@ -51,11 +52,11 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
                 ref?.setAttr("opacity", clamped)
             })
             return curTime <= refs.current.length
-        }).start()
+        }, groupRef.current?.getLayer()).start()
     }, [playing, activePage, animateOnPage])
 
     return (
-        <Group {...rest}>
+        <Group ref={groupRef as any} {...rest}>
             {
                 Children.map(children, (child, i) => (
                     <Group
@@ -155,15 +156,16 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
                     <VerticalStack x={5} y={12} animateOnPage={2}>
                         <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
                         <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
-                        <Resize toWidth={95} offsetX={5}>
-                            <MontrealMap highlights={stats.mostVisitedBoroughs} /></Resize>
                         <Text
-                            width={90} offsetY={-5} {...bodyStyle}
+                            width={90} offsetY={-75} {...bodyStyle}
                             text={[
                                 _("mostUsedStation", stats.mostUsedStation),
                                 _("tripsFromTo", stats.mostVisitedBorough, stats.mostVisitedBoroughs[stats.mostVisitedBorough])
                             ].join("\n")} />
                     </VerticalStack>
+                    <Resize toWidth={95} offsetX={5}>
+                        <MontrealMap  offsetX={-5} offsetY={-60} animate={page === 2} highlights={stats.mostVisitedBoroughs} />
+                    </Resize>
                 </Page>
 
                 <Page index={3}>

@@ -46,7 +46,7 @@ function ensureReactDialogInjected(lang: "fr" | "en"): HTMLElement {
 }
 
 async function ensureTabInjected() {
-    const lang = document.querySelector(`a[href^="https://bixi.com/fr/"]`) !== null ? "fr" : "en"
+    const lang = document.querySelector(`a[href^="https://bixi.com/en/"]`) !== null ? "en" : "fr"
     ensureMobileTabInjected(lang)
     ensureDesktopTabInjected(lang)
     ensureReactDialogInjected(lang)

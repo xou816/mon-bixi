@@ -1,10 +1,12 @@
-import { Group, Path, Shape } from "react-konva"
-import { arrondissementPolys, BBox, montrealBbox, montrealPolys } from "../data/data.compile"
-import { useRef, useEffect, memo, useMemo } from "react"
+import { Group, Shape } from "react-konva"
+import { arrondissementPolys, montrealBbox, montrealPolys } from "../data/data.compile"
+import { BBox } from '../data/utils'
+import { useRef, useEffect, memo, useMemo, Ref, MutableRefObject } from "react"
 import { Node } from "konva/lib/Node"
 import { colorRed60 } from "./story-content"
 import { Context } from "konva/lib/Context"
 import { ShapeConfig } from "konva/lib/Shape"
+import Konva from "konva"
 
 const MARGIN = 5
 
@@ -21,9 +23,15 @@ function geoPolyAsPath(poly: { x: number, y: number }[], bbox: BBox): PathFn {
     }
 }
 
-const Borough = memo(({ pathFn, bbox, ...rest }: { name: string, pathFn: PathFn, bbox: BBox } & ShapeConfig) => {
+const GeoShape = memo(({ pathFn, bbox, ref, cached, ...rest }: { cached?: boolean, name: string, pathFn: PathFn, bbox: BBox, ref?: Ref<Node> } & ShapeConfig) => {
     const aspect = bbox.height / bbox.width
+    useEffect(() => {
+        if (!cached || !ref || !(ref as MutableRefObject<Node>).current) return
+        const _ref = ref as MutableRefObject<Node> | undefined
+        _ref?.current?.cache({ pixelRatio: 10 })
+    }, [cached])
     return <Shape
+        ref={ref as any}
         perfectDrawEnabled={false}
         sceneFunc={(ctx, shape) => {
             ctx.beginPath()
@@ -39,41 +47,76 @@ function computePolys(highlights: { [key: string]: number }) {
     const maxHighlights = Object.values(highlights).reduce((max, v) => Math.max(max, v), 0)
 
     const bgPolys = montrealPolys
-        .map((poly, i) => <Borough
-            key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{x: .6, y: .6}} shadowColor="#aaa" shadowBlur={.6}
+        .map((poly, i) => <GeoShape
+            cached={true}
+            key={`mtl_${i}`} name="Montreal" fill="white" shadowOffset={{ x: .6, y: .6 }} shadowColor="#aaa" shadowBlur={.6}
             bbox={montrealBbox} pathFn={geoPolyAsPath(poly, montrealBbox)} />)
 
-    const fgPolys = arrondissementPolys
+    const relevantBoroughs = arrondissementPolys
         .filter(({ name }) => highlights[name] !== undefined)
+
+    const fgPolysProps = relevantBoroughs
         .map(({ name, simplePolys }) => {
             const opacity = highlights[name] / maxHighlights
-            return <Borough
-                key={name} name={name}
-                bbox={montrealBbox} pathFn={geoPolyAsPath(simplePolys[0], montrealBbox)}
-                fill={colorRed60} opacity={opacity} />
+            return {
+                name,
+                bbox: montrealBbox,
+                pathFn: geoPolyAsPath(simplePolys[0], montrealBbox),
+                fill: colorRed60,
+                opacity: 0,
+                targetOpacity: opacity,
+            }
         })
+        .toSorted((a, b) => a.targetOpacity - b.targetOpacity)
 
-    return { montrealBbox, bgPolys, fgPolys }
+    return { montrealBbox, bgPolys, fgPolysProps }
 }
 
-export function MontrealMap({ highlights }: { highlights: { [key: string]: number } }) {
+export function MontrealMap({ highlights, animate, offsetX, offsetY }: { offsetX: number, offsetY: number, animate: boolean, highlights: { [key: string]: number } }) {
     const mapRef = useRef<Node>(null)
-    useEffect(() => {
-        if (!mapRef.current) return
-        mapRef.current.cache({ pixelRatio: 10 })
-    }, [highlights])
+    const hlRefs = useRef<{ node: Node | null, targetOpacity: number }[]>([])
 
-    const { montrealBbox, bgPolys, fgPolys } = useMemo(() => computePolys(highlights), [highlights])
+    const { montrealBbox, bgPolys, fgPolysProps } = useMemo(() => computePolys(highlights), [highlights])
+
+    const animation = useRef(new Konva.Animation((frame) => {
+        const len = hlRefs.current.length
+        const totalDur = 4_000 / 2
+        const dur = totalDur / len
+        const curTime = Math.floor(frame.time / dur)
+
+        hlRefs.current.forEach(({ node, targetOpacity }, i) => {
+            const val = curTime - i + (frame.time % dur) / dur
+            const clamped = Math.max(0, Math.min(1, val))
+            node?.setAttr("opacity", clamped * targetOpacity)
+        })
+
+        return curTime <= hlRefs.current.length
+    }, mapRef.current?.getLayer()))
+
+    useEffect(() => {
+        if (animate) animation.current.start()
+        else animation.current.stop()
+        return () => { animation.current.stop() }
+    }, [animate])
+
 
     return (
         <Group
             ref={mapRef as any}
-            offsetY={-MARGIN} offsetX={-MARGIN}>
+            offsetY={-MARGIN + offsetY} offsetX={-MARGIN + offsetX}>
             {bgPolys}
             <Group clipFunc={(ctx) => {
                 ctx.beginPath()
                 montrealPolys.forEach((poly) => geoPolyAsPath(poly, montrealBbox)(ctx))
-            }}>{fgPolys}</Group>
+            }}>
+                {
+                    fgPolysProps.map(({ targetOpacity, ...props }, i) => (
+                        <GeoShape key={props.name} ref={node => {
+                            hlRefs.current[i] = { node, targetOpacity }
+                        }} {...props} />
+                    ))
+                }
+            </Group>
         </Group>
     )
 }

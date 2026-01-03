@@ -3,6 +3,7 @@ import arrondissementsGeojson from './arrondissements.json' // from https://donn
 import montrealGeojson from './limites-terrestres.json' // from https://www.donneesquebec.ca/recherche/dataset/vmtl-limites-terrestres/resource/92cb062a-11be-4222-9ea5-867e7e64c5ff
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Shape, Vector2, Vector3 } from "three"
 import simplify from "simplify-js"
+import { boundingBox } from './utils'
 
 export type Station = {
     name: string,
@@ -11,23 +12,6 @@ export type Station = {
 }
 
 export type EnrichedStation = Station & { arrondissement: string }
-
-function boundingBox(poly: { x: number; y: number; }[]) {
-    const xs = poly.map(({ x }) => x);
-    const ys = poly.map(({ y }) => y);
-    const minMax = (vs: number[]) => vs.reduce(
-        ({ min, max }, v) => ({ min: Math.min(min, v), max: Math.max(max, v) }),
-        { min: Infinity, max: -Infinity });
-    const mx = minMax(xs);
-    const my = minMax(ys);
-    return {
-        minX: mx.min, maxX: mx.max,
-        minY: my.min, maxY: my.max,
-        width: mx.max - mx.min, height: my.max - my.min
-    };
-}
-
-export type BBox = ReturnType<typeof boundingBox>
 
 function computeArrondissementsMeshes() {
     return arrondissementsGeojson.features.map(({ properties, geometry }) => {
