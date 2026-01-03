@@ -36,7 +36,7 @@ export function useStoriesSlideshow({ pageCount, duration }: { pageCount: number
 
         if (playing && activePage <= pageCount - 1 && activePage > -1) {
             if (!timeout) {
-                console.log(`Running for ${duration - elapsed}ms`)
+                // console.log(`Running for ${duration - elapsed}ms`)
                 timeout = setTimeout(() => nextPage(), duration - elapsed)
             }
             timeoutData.current = {

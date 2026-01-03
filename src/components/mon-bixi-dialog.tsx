@@ -30,7 +30,7 @@ export function MonBixiDialog({ year }: { year: number }) {
     const [open, setOpen] = useState(false)
     const [loadingProgress, setLoadingProgress] = useState(0)
     const [stats, setStats] = useState<StatsDetail>();
-    const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration: 5_000, pageCount: 3 })
+    const { setPlaying, ...storiesProps } = useStoriesSlideshow({ duration: 5_000, pageCount: 4 })
 
     useIndexDb(async (db) => {
         const oldStats = await getLastStats(db, year)

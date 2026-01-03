@@ -123,6 +123,12 @@ function computePhysicalStats(ride: Ride) {
     return { distance, duration, speed }
 }
 
+function countWinterRides(rides: Ride[], year: number) {
+    const start = Date.parse(`${year}-11-16T00:00:00Z`).toString()
+    const end = Date.parse(`${year}-04-14T23:59:59Z`).toString()
+    return rides.reduce((sum, ride) => sum + Number(ride.startTimeMs > start || ride.startTimeMs < end), 0)
+}
+
 export async function getLastStats(db: DbHandle, year: number): Promise<Stats | undefined> {
     const [startOfYear, endOfYear] = yearBounds(year)
     let stats = await db.findStats()
@@ -159,7 +165,8 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
         mostVisitedBoroughs: frequencyTable(rides, ({ startAddressStr, startAddress, endAddressStr, endAddress }) => [
             findBoroughForStation(startAddressStr, startAddress),
             findBoroughForStation(endAddressStr, endAddress)
-        ])
+        ]),
+        winterRides: countWinterRides(rides, year)
     }
 
     const { _mostFrequent: mostVisitedBorough, ...mostVisitedBoroughs } = s.mostVisitedBoroughs
@@ -198,6 +205,7 @@ export type StatsDetail = {
     mostUsedStation: string,
     totalDistanceYearly: Dimen<"m">,
     mostVisitedBorough: string,
+    winterRides: number,
 }
 
 export type Stats = {

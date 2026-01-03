@@ -7,6 +7,7 @@ import { StatsDetail } from "../data/compute-stats";
 import { Node } from "konva/lib/Node";
 import { GroupConfig } from "konva/lib/Group";
 import { MontrealMap } from "./montreal-map";
+import { SnowFall, TextShaky } from "./winter";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
 const titleStyle = {
@@ -101,7 +102,8 @@ function Page({ index, children }: { index: number, children: ReactNode }) {
 const pageColors = [
     "#f5b9e1",
     "#f5f596",
-    "#bee1f0"
+    "#bee1f0",
+    "#bec8ff"
 ]
 
 
@@ -162,6 +164,15 @@ export function StoryContent({ height, stats }: { width: number, height: number,
                                 `Station la plus utilisée : ${stats.mostUsedStation}`,
                                 `Nombre de trajets depuis/vers ${stats.mostVisitedBorough} : ${stats.mostVisitedBoroughs[stats.mostVisitedBorough]}`
                             ].join("\n")} />
+                    </VerticalStack>
+                </Page>
+
+                <Page index={3}>
+                    <SnowFall animate={page === 3} />
+                    <VerticalStack x={5} y={25} animateOnPage={3}>
+                        <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={"L'hiver ?"} /></Resize>
+                        <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={"Même pas froid !"} /></Resize>
+                        <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={`Tu as effectué ${stats.winterRides} trajets à Bixi en hiver.`} />
                     </VerticalStack>
                 </Page>
             </PageGroup>
