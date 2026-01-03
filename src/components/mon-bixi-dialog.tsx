@@ -69,9 +69,10 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     const [downloadsList, setDownloads] = useState<Download[]>([])
 
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({
-        duration: 4_000, pageCount: pageCount(stats),
-        onBeforeNextPage: (page: number) => {
-            if (!canvasRef.current || page === 4 || downloadsList.find(({ id }) => id === page) !== undefined) return
+        duration: 4_000, 
+        pageCount: pageCount(stats),
+        onBeforeNextPage: (page: number, total: number) => {
+            if (!canvasRef.current || page === total - 1 || downloadsList.find(({ id }) => id === page) !== undefined) return
             setDownloads(downloadsList
                 .concat({
                     url: canvasRef.current.toDataURL("image/png"),

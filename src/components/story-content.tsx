@@ -71,6 +71,7 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
     )
 }
 
+// buggy! try not to use it with changing content
 function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
     const ref = useRef<Node>(null)
     useEffect(() => {
@@ -205,7 +206,7 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
 
             <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={35} scale={1} />
             {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
-            <Text x={5} y={height - 5} fontSize={2} width={90} align="left" fill="gray" text={_("myYearWithBixi")} />
+            <Text x={5} y={height - 5} fontSize={2} width={90} align="left" fill="gray" text={`Extension "Mon Bixi"`} />
         </Layer>
     );
 }

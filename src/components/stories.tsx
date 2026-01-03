@@ -9,7 +9,7 @@ type TimeoutData = {
     elapsed: number // elapsed time, computed when pausing
 }
 
-export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: { pageCount: number, duration: number, onBeforeNextPage?: (oldPage: number) => void }) {
+export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: { pageCount: number, duration: number, onBeforeNextPage?: (oldPage: number, total: number) => void }) {
     const [{ playing, activePage }, setPlayState] = useState({
         activePage: 0,
         playing: false,
@@ -17,7 +17,7 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
 
     const setPlaying = (playing: boolean) => setPlayState((s) => ({ ...s, playing, activePage: Math.max(s.activePage, 0) }))
     const setPage = (page: number) => {
-        onBeforeNextPage?.(activePage)
+        onBeforeNextPage?.(activePage, pageCount)
         setPlayState((s) => ({ ...s, playing: true, activePage: Math.min(page, pageCount - 1) }))
     }
     const nextPage = () => setPage(activePage + 1)
