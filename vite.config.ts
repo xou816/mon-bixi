@@ -21,6 +21,7 @@ export default defineConfig({
     compileTime(),
     webExtension({
       manifest: generateManifest,
+      browser: process.env.TARGET || "firefox",
     }),
   ],
 });
