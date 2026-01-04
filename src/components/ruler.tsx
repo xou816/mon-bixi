@@ -76,14 +76,14 @@ export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue:
 
                 if (index % (segmentEvery * 5) === 0) {
                     const text = value.toString()
-                    context.font = `bold 5px "${fontFamily}", sans-serif`
+                    context.font = `italic 5px "${fontFamily}", sans-serif`
                     const { actualBoundingBoxAscent, width } = context.measureText(text)
                     context.fillText(text, 100 - width - 12, actualBoundingBoxAscent / 2)
                 }
 
                 if (value === Math.round(targetValue)) {
                     const text = `... ${Math.round(targetValue)} km`
-                    context.fillStyle = colorRed60
+                    context.fillStyle = fill
                     context.font = `bold 8px "${fontFamily}", sans-serif`
                     const { actualBoundingBoxAscent, width } = context.measureText(text)
                     context.fillText(text, 100 - width - 12, actualBoundingBoxAscent / 2)

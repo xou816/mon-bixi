@@ -76,7 +76,7 @@ type StoriesProps = {
     close: () => void
 }
 
-const StoriesContext = createContext({ activePage: 0, playing: false })
+const StoriesContext = createContext({ activePage: 0 })
 export const useStories = () => useContext(StoriesContext)
 
 export function StoriesSlideshow({ playing, activePage, duration, setPage, togglePlaying, pageCount, children, close }: StoriesProps) {
@@ -84,7 +84,7 @@ export function StoriesSlideshow({ playing, activePage, duration, setPage, toggl
 
     return (
         <>
-            <StoriesContext.Provider value={{ activePage, playing }}>
+            <StoriesContext.Provider value={{ activePage }}>
                 {children}
             </StoriesContext.Provider>
             <nav className={classes.stepper} style={stepperStyle}>

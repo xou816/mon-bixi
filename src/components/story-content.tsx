@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState, Ref, createContext, useContext, useMemo } from "react";
+import { useRef, useEffect, Children, ReactNode, useState, Ref, createContext, useContext, useMemo, memo } from "react";
 import { Group, Layer, Rect, Text } from "react-konva";
 import { BixiBike } from "./bixi-bike";
 import { useStories } from "./stories";
@@ -16,18 +16,19 @@ const titleStyle = {
     fontSize: 8,
     fontStyle: "bold",
     fontFamily: "LyftProUI",
-    fill: colorRed60
+    fill: colorRed60,
+    lineHeight: 1.2
 }
 
 const bodyStyle = {
     fontSize: 4,
     fontStyle: "bold",
     fontFamily: "ProximaNova",
-    fill: "#444"
+    fill: "#444",
+    lineHeight: 1.2
 }
 
-function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNode, animateOnPage?: number } & GroupConfig) {
-    const { playing, activePage } = useStories();
+const VerticalStack = memo(({ children, animate, ...rest }: { children: ReactNode, animate: boolean } & GroupConfig) => {
     const [offsets, setOffsets] = useState<number[]>([])
     const refs = useRef<Node[]>([])
     const groupRef = useRef<Node>(null)
@@ -42,10 +43,11 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
     }, [])
 
     // staggered entrance :)
+    const dur = 500
+    const animation = useRef(new Konva.Animation(() => { }))
     useEffect(() => {
-        if (!refs.current || animateOnPage === undefined || !(playing && animateOnPage === activePage)) return
-        const dur = 500
-        new Konva.Animation((frame) => {
+        if (!groupRef.current) return
+        animation.current = new Konva.Animation((frame) => {
             const curTime = Math.floor(frame.time / dur)
             refs.current.forEach((ref, i) => {
                 const val = curTime - i + (frame.time % dur) / dur
@@ -53,15 +55,22 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
                 ref?.setAttr("opacity", clamped)
             })
             return curTime <= refs.current.length
-        }, groupRef.current?.getLayer()).start()
-    }, [playing, activePage, animateOnPage])
+        }, groupRef.current.getLayer()).start()
+    }, [])
+
+    useEffect(() => {
+        if (!refs.current) return
+        if (animate) animation.current.start()
+        else animation.current.stop()
+        return () => { animation.current.stop() }
+    }, [animate])
 
     return (
         <Group ref={groupRef as any} {...rest}>
             {
                 Children.map(children, (child, i) => (
                     <Group
-                        opacity={animateOnPage === undefined ? 1 : 0}
+                        opacity={animate ? 1 : 0}
                         ref={r => refs.current[i] = r as Node}
                         offsetY={-(offsets[i] ?? 0)}>
                         {child}
@@ -70,7 +79,7 @@ function VerticalStack({ children, animateOnPage, ...rest }: { children: ReactNo
             }
         </Group>
     )
-}
+})
 
 // buggy! try not to use it with changing content
 function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
@@ -137,17 +146,28 @@ function Page({ children, color }: { children: ReactNode, color: string }) {
 
 export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 5 : 6
 
+function useAnimateThisPage() {
+    const { index } = useContext(PageIndex)
+    const { activePage: page } = useStories()
+    return index === page
+}
+
 function HomePage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const { index } = useContext(PageIndex)
+    const animate = useAnimateThisPage()
     return (
         <Page color="#f5b9e1">
-            <VerticalStack x={5} y={12} animateOnPage={index}>
-                {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => (
-                    <Resize key={text} toWidth={90}>
-                        <Text {...titleStyle} fill={/\d/.test(text.trim()) ? "#333" : colorRed60} text={text.trim()} />
-                    </Resize>
-                ))}
+            <VerticalStack x={5} y={10} animate={animate}>
+                {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => {
+                    const isYear = /\d/.test(text.trim())
+                    return (
+                        <Resize key={text} toWidth={90}>
+                            <Text {...titleStyle} text={text.trim()}
+                                lineHeight={isYear ? 0.9 : titleStyle.lineHeight}
+                                fill={isYear ? "#333" : colorRed60} />
+                        </Resize>
+                    );
+                })}
             </VerticalStack>
         </Page>
     )
@@ -155,14 +175,14 @@ function HomePage({ stats }: { stats: StatsDetail }) {
 
 function TimeSpentPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const { index } = useContext(PageIndex)
+    const animate = useAnimateThisPage()
     return (
         <Page color="#f5f596">
-            <VerticalStack x={5} y={12} animateOnPage={index}>
-                <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", Math.round(stats.totalTimeYearly / 3600))} />
+            <VerticalStack x={5} y={12} animate={animate}>
+                <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", stats.totalTimeYearly)} />
                 <Text
                     width={90} offsetY={-5} {...bodyStyle}
-                    text={_("tripAverage", Math.round(stats.averageRideTime / 60))} />
+                    text={_("tripAverage", stats.averageRideTime)} />
             </VerticalStack>
         </Page>
     )
@@ -170,11 +190,10 @@ function TimeSpentPage({ stats }: { stats: StatsDetail }) {
 
 function MostVisitedPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const { activePage: page } = useStories();
-    const { index } = useContext(PageIndex)
+    const animate = useAnimateThisPage()
     return (
         <Page color="#bee1f0">
-            <VerticalStack x={5} y={12} animateOnPage={index}>
+            <VerticalStack x={5} y={12} animate={animate}>
                 <Resize toWidth={90}><Text {...titleStyle} fill="#333" text={_("yourHome")} /></Resize>
                 <Resize toWidth={90} deps={[stats.mostVisitedBorough]}><Text {...titleStyle} text={stats.mostVisitedBorough + "."} /></Resize>
                 <Text
@@ -185,33 +204,35 @@ function MostVisitedPage({ stats }: { stats: StatsDetail }) {
                     ].join("\n")} />
             </VerticalStack>
             <Resize toWidth={95} offsetX={5}>
-                <MontrealMap offsetX={-5} offsetY={-60} animate={page === index} highlights={stats.mostVisitedBoroughs} />
+                <MontrealMap offsetX={-5} offsetY={-70} animate={animate} highlights={stats.mostVisitedBoroughs} />
             </Resize>
         </Page>
     )
 }
 
-function TravelledPage({ stats }: { stats: StatsDetail }) {
+function TravelledPage({ stats, height }: { stats: StatsDetail, height: number }) {
     const _ = useLocale()
-    const { activePage: page } = useStories();
-    const { index } = useContext(PageIndex)
+    const animate = useAnimateThisPage()
     return (
         <Page color="#febd97">
-            <Text x={5} y={55} width={70} {...titleStyle} fill="#333" text={_("youRode")} />
-            <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={page === index} fill="white" />
-            <Text x={5} y={90} width={70} {...bodyStyle} text={_("averageDist", Math.round(stats.averageRideDist / 1_000))} />
+            <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={animate} fill="#d3803cff" />
+            <Rect x={0} y={0} width={100} height={height}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 0, y: height }}
+                fillLinearGradientColorStops={[0, "#febd97ff", 0.3, "#febd9700", 0.7, "#febd9700", 1, "#febd97ff"]} />
+            <Text x={5} y={50} width={70} {...titleStyle} fill="#333" text={_("youRode")} />
+            <Text x={5} y={90} width={70} {...bodyStyle} text={_("averageDist", stats.averageRideDist)} />
+            <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text={_("estimate")} />
         </Page>
     )
 }
 
 function WinterPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const { activePage: page } = useStories();
-    const { index } = useContext(PageIndex)
+    const animate = useAnimateThisPage()
     return (
         <Page color="#bec8ff">
-            <SnowFall animate={page === index} />
-            <VerticalStack x={5} y={25} animateOnPage={index}>
+            <SnowFall animate={animate} />
+            <VerticalStack x={5} y={25} animate={animate}>
                 <Resize toWidth={90}><Text {...titleStyle} fill="#327fba" text={_("winter")} /></Resize>
                 <Resize toWidth={90}><TextShaky {...titleStyle} fill="#327fba" text={_("notEvenCold")} /></Resize>
                 <Text offsetY={-10} {...titleStyle} width={90} fill="#333" text={_("winterTrips", stats.winterRides)} />
@@ -241,7 +262,7 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
                 <HomePage stats={stats} />
                 <TimeSpentPage stats={stats} />
                 <MostVisitedPage stats={stats} />
-                <TravelledPage stats={stats} />
+                <TravelledPage stats={stats} height={height} />
                 {stats.winterRides > 0 && <WinterPage stats={stats} />}
                 <Page color="#f5b9e1">
                     <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />

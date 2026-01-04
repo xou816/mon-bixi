@@ -30,7 +30,7 @@ const GeoShape = memo(({ pathFn, bbox, ref, cached, ...rest }: { cached?: boolea
         const _ref = ref as MutableRefObject<Node> | undefined
         _ref?.current?.cache({ pixelRatio: 10 })
     }, [cached])
-    
+
     return <Shape
         ref={ref as any}
         perfectDrawEnabled={false}
@@ -77,25 +77,25 @@ export function MontrealMap({ highlights, animate, offsetX, offsetY }: { offsetX
 
     const { montrealBbox, bgPolys, fgPolysProps } = useMemo(() => computePolys(highlights), [highlights])
 
-    const animation = useRef(new Konva.Animation((frame) => {
-        const len = hlRefs.current.length
-        const totalDur = 4_000 / 2
-        const dur = totalDur / len
-        const curTime = Math.floor(frame.time / dur)
-
-        hlRefs.current.forEach(({ node, targetOpacity }, i) => {
-            const val = curTime - i + (frame.time % dur) / dur
-            const clamped = Math.max(0, Math.min(1, val))
-            node?.setAttr("opacity", clamped * targetOpacity)
-        })
-
-        return curTime <= hlRefs.current.length
-    }, mapRef.current?.getLayer()))
-
     useEffect(() => {
-        if (animate) animation.current.start()
-        else animation.current.stop()
-        return () => { animation.current.stop() }
+        const animation = new Konva.Animation((frame) => {
+            const len = hlRefs.current.length
+            const totalDur = 4_000 / 2
+            const dur = totalDur / len
+            const curTime = Math.floor(frame.time / dur)
+
+            hlRefs.current.forEach(({ node, targetOpacity }, i) => {
+                const val = curTime - i + (frame.time % dur) / dur
+                const clamped = Math.max(0, Math.min(1, val))
+                node?.setAttr("opacity", clamped * targetOpacity)
+            })
+
+            return curTime <= hlRefs.current.length
+        }, mapRef.current?.getLayer())
+
+        if (animate) animation.start()
+        else animation.stop()
+        return () => { animation.stop() }
     }, [animate])
 
 

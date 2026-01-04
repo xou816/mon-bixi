@@ -116,7 +116,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     return (
         <Locale.Provider value={lang}>
             <dialog ref={dialogRef} className={classes.rootDialog} closedby="any">
-                {stats && <StoriesSlideshow {...storiesProps} close={() => setOpen(false)}>
+                {stats && clientWidth !== 0 && <StoriesSlideshow {...storiesProps} close={() => setOpen(false)}>
                     <Stage width={clientWidth} height={clientHeight} scale={{ x: clientWidth / 100, y: clientWidth / 100 }}>
                         <StoryContent ref={canvasRef} width={100} height={clientHeight * 100 / clientWidth} stats={stats} />
                     </Stage>
