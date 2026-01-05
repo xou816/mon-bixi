@@ -66,7 +66,7 @@ const enTexts: typeof frTexts = {
     myYearWithBixiLong: _`My journey\nwith Bixi in\n${0}`,
     weSpentHoursTogether: _`We spent ${time(0)} or so together this year.\nNot bad, uh?`,
     tripAverage: _`Average ride duration: ${time(0)}`,
-    longestRide: _`Longest ride: ${temps(0)}`,
+    longestRide: _`Longest ride: ${time(0)}`,
     totalTrips: _`Total number of rides: ${0}`,
     youRode: "This year, you rode a total of...",
     averageDist: _`Average trip distance: ${distance(0)}`,

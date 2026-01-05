@@ -1,17 +1,18 @@
 import Konva from "konva";
-import { useRef, useEffect, Children, ReactNode, useState, Ref, createContext, useContext, useMemo, memo } from "react";
+import { useRef, useEffect, Children, ReactNode, Ref, createContext, useContext, useMemo } from "react";
 import { Group, Layer, Rect, Text } from "react-konva";
 import { BixiBike } from "./bixi-bike";
 import { useStories } from "./stories";
 import { StatsDetail } from "../data/compute-stats";
 import { Node } from "konva/lib/Node";
-import { GroupConfig } from "konva/lib/Group";
 import { MontrealMap } from "./montreal-map";
 import { SnowFall, TextShaky } from "./winter";
 import { useLocale } from "./mon-bixi-dialog";
 import { Ruler } from "./ruler";
+import { Resize, VerticalStack } from "./utils";
 
 export const colorRed60 = window.getComputedStyle(document.body).getPropertyValue("--core-ui-color-red60");
+
 const titleStyle = {
     fontSize: 8,
     fontStyle: "bold",
@@ -26,67 +27,6 @@ const bodyStyle = {
     fontFamily: "ProximaNova",
     fill: "#444",
     lineHeight: 1.2
-}
-
-const VerticalStack = memo(({ children, animate, ...rest }: { children: ReactNode, animate: boolean } & GroupConfig) => {
-    const [offsets, setOffsets] = useState<number[]>([])
-    const refs = useRef<Node[]>([])
-    const groupRef = useRef<Node>(null)
-
-    useEffect(() => {
-        if (!refs.current) return
-        const newOffsets = refs.current.reduce((acc, ref, i) => {
-            acc.push(ref.getClientRect().height + acc[i])
-            return acc
-        }, [0])
-        setOffsets(newOffsets)
-    }, [])
-
-    // staggered entrance :)
-    const dur = 500
-    useEffect(() => {
-        if (!refs.current || !groupRef.current) return
-        const animation = new Konva.Animation((frame) => {
-            const curTime = Math.floor(frame.time / dur)
-            refs.current.forEach((ref, i) => {
-                const val = curTime - i + (frame.time % dur) / dur
-                const clamped = Math.max(0, Math.min(1, val))
-                ref?.setAttr("opacity", clamped)
-            })
-            return curTime <= refs.current.length
-        }, groupRef.current.getLayer()).start()
-
-        if (animate) animation.start()
-        else animation.stop()
-        return () => { animation.stop() }
-    }, [animate])
-
-    return (
-        <Group ref={groupRef as any} {...rest}>
-            {
-                Children.map(children, (child, i) => (
-                    <Group
-                        opacity={animate ? 1 : 0}
-                        ref={r => refs.current[i] = r as Node}
-                        offsetY={-(offsets[i] ?? 0)}>
-                        {child}
-                    </Group>
-                ))
-            }
-        </Group>
-    )
-})
-
-// buggy! try not to use it with changing content
-function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
-    const ref = useRef<Node>(null)
-    useEffect(() => {
-        if (!ref.current) return
-        const { width } = ref.current.getClientRect()
-        const scale = toWidth / width
-        ref.current.scale({ x: scale, y: scale })
-    }, [])
-    return <Group {...rest} ref={ref as any} />
 }
 
 const PageIndex = createContext({
@@ -143,7 +83,6 @@ function Page({ children, color }: { children: ReactNode, color: string }) {
     return <Group x={index * 100}>{children}</Group>
 }
 
-export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 5 : 6
 
 function useAnimateThisPage() {
     const { index } = useContext(PageIndex)
@@ -151,12 +90,13 @@ function useAnimateThisPage() {
     return index === page
 }
 
-function HomePage({ stats }: { stats: StatsDetail }) {
+function HomePage({ stats, height }: { stats: StatsDetail, height: number }) {
     const _ = useLocale()
-    const animate = useAnimateThisPage()
+    const { index } = useContext(PageIndex)
+    const { activePage: page } = useStories()
     return (
         <Page color="#f5b9e1">
-            <VerticalStack x={5} y={10} animate={animate}>
+            <VerticalStack x={5} y={10} animate={page === index}>
                 {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => {
                     const isYear = /\d/.test(text.trim())
                     return (
@@ -168,6 +108,8 @@ function HomePage({ stats }: { stats: StatsDetail }) {
                     );
                 })}
             </VerticalStack>
+            <BixiBike animated={page === index + 1} x={0} y={35} scale={1} />
+            {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
         </Page>
     )
 }
@@ -245,25 +187,15 @@ function WinterPage({ stats }: { stats: StatsDetail }) {
     )
 }
 
-export function StoryContent({ height, stats, ref }: { width: number, height: number, stats: StatsDetail, ref: Ref<HTMLCanvasElement> }) {
-    const { activePage: page } = useStories();
-    const _ = useLocale()
-    const bixiBike = useRef<Node>(null);
+export const pageCount = (stats?: StatsDetail) => stats?.winterRides === 0 ? 5 : 6
 
-    useEffect(() => {
-        if (!bixiBike.current) return;
-        bixiBike.current.to({
-            node: bixiBike.current,
-            duration: 0.5,
-            x: - page * 110,
-            easing: Konva.Easings.EaseOut
-        })
-    }, [page]);
+export function StoryContent({ height, stats, ref }: { width: number, height: number, stats: StatsDetail, ref: Ref<HTMLCanvasElement> }) {
+    const _ = useLocale()
 
     return (
         <Layer ref={ref as any} listening={false}>
             <PageGroup height={height}>
-                <HomePage stats={stats} />
+                <HomePage stats={stats} height={height} />
                 <TimeSpentPage stats={stats} />
                 <TravelledPage stats={stats} height={height} />
                 <MostVisitedPage stats={stats} />
@@ -272,9 +204,6 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
                     <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />
                 </Page>
             </PageGroup>
-
-            <BixiBike ref={bixiBike as any} animated={page === 1} x={0} y={35} scale={1} />
-            {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
             <Text x={5} y={height - 5} fontSize={2} width={90} align="left" fill="gray" text={`Extension "Mon Bixi"`} />
         </Layer>
     );

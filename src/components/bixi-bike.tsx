@@ -52,9 +52,11 @@ function FrontWheel({ animated }: { animated: boolean }) {
     )
 }
 
-export function BixiBike({ x, y, scale, animated, ref: groupRef }: { x: number; y: number; scale: number; ref: RefObject<Node>, animated: boolean }) {
+export function BixiBike({ x, y, scale, animated }: { x: number; y: number; scale: number; animated: boolean }) {
+    const groupRef = useRef<Node>(null)
     const fullBike = useRef<Node>(null)
     const bikeFrame = useRef<Node>(null)
+
     useEffect(() => {
         if (!fullBike.current) return
         fullBike.current.cache({ pixelRatio: 5 })
