@@ -34,7 +34,7 @@ function pseudoRandom() {
 
 function makeSnowflake(variantCount: number) {
     return {
-        x: Math.round(pseudoRandom() * 100),
+        x: 5 + Math.round(pseudoRandom() * 95),
         y: Math.round(pseudoRandom() * 180),
         phase: pseudoRandom(),
         scale: 0.4 + 0.3 * pseudoRandom(),
