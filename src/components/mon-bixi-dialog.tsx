@@ -10,7 +10,12 @@ import { translate } from "./translations";
 
 function Loading({ loadingProgress }: { loadingProgress: number }) {
     const _ = useLocale()
-    return loadingProgress < 100 && <div className={classes.loadingIndicator}>{_("analyzingRides")} {loadingProgress}%</div>
+    return loadingProgress < 100 && (
+        <div className={classes.loading}>
+            <div className={classes.loadingProgress} style={{ "--loadingValue": loadingProgress } as any} />
+            <p>{_("analyzingRides")}</p>
+        </div>
+    )
 }
 
 type Download = { filename: string, url: string, id: number }
@@ -61,7 +66,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
         if (!dialogRef.current) return
         dialogRef.current.addEventListener("close", () => setOpen(false))
         observer.current.observe(dialogRef.current)
-    })
+    }, [])
 
     const [open, setOpen] = useState(false)
     const [loadingProgress, setLoadingProgress] = useState(0)
@@ -69,17 +74,16 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     const [downloadsList, setDownloads] = useState<Download[]>([])
 
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({
-        duration: 4_000, 
+        duration: 4_000,
         pageCount: pageCount(stats),
         onBeforeNextPage: (page: number, total: number) => {
             if (!canvasRef.current || page === total - 1 || downloadsList.find(({ id }) => id === page) !== undefined) return
-            setDownloads(downloadsList
-                .concat({
-                    url: canvasRef.current.toDataURL("image/png"),
-                    filename: `story_${page}.png`,
-                    id: page
-                })
-                .toSorted((a, b) => a.id - b.id))
+            downloadsList.splice(page, 0, {
+                url: canvasRef.current.toDataURL("image/png"),
+                filename: `story_${page}.png`,
+                id: page
+            })
+            setDownloads(downloadsList)
         }
     })
 
@@ -96,7 +100,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
                 setLoadingProgress(100)
                 setStats(next.value.stats)
             } else {
-                setLoadingProgress(Math.floor(next.value * 100))
+                setLoadingProgress(next.value)
             }
         }
     })

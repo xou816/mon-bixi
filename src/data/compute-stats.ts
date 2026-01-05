@@ -38,6 +38,10 @@ function sum<T, U extends Unit>(series: T[], valuePath: (t: T) => Dimen<U>) {
     return series.reduce((sum, t) => sum + valuePath(t), 0) as Dimen<U>
 }
 
+function max<T, U extends Unit>(series: T[], valuePath: (t: T) => Dimen<U>) {
+    return series.reduce((max, t) => Math.max(max, valuePath(t)), -Infinity) as Dimen<U>
+}
+
 function fillQuadTree() {
     const { minX, minY, width, height } = montrealBbox
     const box = new Box(minX, minY, width, height)
@@ -144,6 +148,8 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
         yield progress
     }
 
+    yield .99
+
     const [startOfYear, endOfYear] = yearBounds(year)
     const rides = await db.findRides()
         .filterKeys(IDBKeyRange.bound(startOfYear, endOfYear))
@@ -152,7 +158,7 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
     const timeMs = rides[rides.length - 1]?.startTimeMs ?? 0
 
     let stats = await db.findStats().getKey(timeMs)
-    // if (stats) return stats
+    if (stats) return stats
 
     const s = {
         year,
@@ -180,14 +186,13 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
         mostVisitedBorough,
         mostVisitedBoroughs,
         averageRideTime: average(s.rideTimeAndDist, t => t.duration),
+        longestRide: max(s.rideTimeAndDist, t => t.duration),
         averageRideDist: average(s.rideTimeAndDist, t => t.distance)
     }
 
     stats = { timeMs, stats: s2 }
     const tx = await db.createTx(STATS_STORE, "readwrite")
     tx.put(stats)
-
-    yield 1
 
     return stats
 }
@@ -201,6 +206,7 @@ export type StatsDetail = {
     rideCountYearly: number,
     rideTimeAndDist: { distance: Dimen<"m">, speed: Dimen<"m/s">, duration: Dimen<"s"> }[],
     averageRideTime: Dimen<"s">,
+    longestRide: Dimen<"s">,
     averageRideDist: Dimen<"m">,
     mostUsedStations: { [k: string]: number },
     mostVisitedBoroughs: { [k: string]: number }

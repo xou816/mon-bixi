@@ -44,10 +44,9 @@ const VerticalStack = memo(({ children, animate, ...rest }: { children: ReactNod
 
     // staggered entrance :)
     const dur = 500
-    const animation = useRef(new Konva.Animation(() => { }))
     useEffect(() => {
-        if (!groupRef.current) return
-        animation.current = new Konva.Animation((frame) => {
+        if (!refs.current || !groupRef.current) return
+        const animation = new Konva.Animation((frame) => {
             const curTime = Math.floor(frame.time / dur)
             refs.current.forEach((ref, i) => {
                 const val = curTime - i + (frame.time % dur) / dur
@@ -56,13 +55,10 @@ const VerticalStack = memo(({ children, animate, ...rest }: { children: ReactNod
             })
             return curTime <= refs.current.length
         }, groupRef.current.getLayer()).start()
-    }, [])
 
-    useEffect(() => {
-        if (!refs.current) return
-        if (animate) animation.current.start()
-        else animation.current.stop()
-        return () => { animation.current.stop() }
+        if (animate) animation.start()
+        else animation.stop()
+        return () => { animation.stop() }
     }, [animate])
 
     return (
@@ -93,7 +89,10 @@ function Resize({ toWidth, ...rest }: { toWidth: number } & GroupConfig) {
     return <Group {...rest} ref={ref as any} />
 }
 
-const PageIndex = createContext({ index: 0, setColor: (i: number, color: string) => { } })
+const PageIndex = createContext({
+    index: 0,
+    setColor: (i: number, color: string) => { }
+})
 
 function PageGroup({ children, height }: { children: ReactNode, height: number }) {
     const { activePage: page } = useStories();
@@ -182,7 +181,10 @@ function TimeSpentPage({ stats }: { stats: StatsDetail }) {
                 <Text {...titleStyle} width={90} text={_("weSpentHoursTogether", stats.totalTimeYearly)} />
                 <Text
                     width={90} offsetY={-5} {...bodyStyle}
-                    text={_("tripAverage", stats.averageRideTime)} />
+                    text={[
+                        _("tripAverage", stats.averageRideTime),
+                        _("longestRide", stats.longestRide)
+                    ].join("\n")} />
             </VerticalStack>
         </Page>
     )
@@ -215,12 +217,14 @@ function TravelledPage({ stats, height }: { stats: StatsDetail, height: number }
     const animate = useAnimateThisPage()
     return (
         <Page color="#febd97">
-            <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={animate} fill="#d3803cff" />
-            <Rect x={0} y={0} width={100} height={height}
-                fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 0, y: height }}
-                fillLinearGradientColorStops={[0, "#febd97ff", 0.3, "#febd9700", 0.7, "#febd9700", 1, "#febd97ff"]} />
-            <Text x={5} y={50} width={70} {...titleStyle} fill="#333" text={_("youRode")} />
-            <Text x={5} y={90} width={70} {...bodyStyle} text={_("averageDist", stats.averageRideDist)} />
+            <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={animate} fill="#d3803c" />
+            <VerticalStack x={5} y={50} animate={animate}>
+                <Text width={70} {...titleStyle} fill="#333" text={_("youRode")} />
+                <Text width={70} offsetY={-20} {...bodyStyle} text={[
+                    _("averageDist", stats.averageRideDist),
+                    _("totalTrips", stats.rideCountYearly)
+                ].join("\n")} />
+            </VerticalStack>
             <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text={_("estimate")} />
         </Page>
     )
@@ -261,8 +265,8 @@ export function StoryContent({ height, stats, ref }: { width: number, height: nu
             <PageGroup height={height}>
                 <HomePage stats={stats} />
                 <TimeSpentPage stats={stats} />
-                <MostVisitedPage stats={stats} />
                 <TravelledPage stats={stats} height={height} />
+                <MostVisitedPage stats={stats} />
                 {stats.winterRides > 0 && <WinterPage stats={stats} />}
                 <Page color="#f5b9e1">
                     <Text x={5} y={25} {...titleStyle} fill="#333" width={90} align="center" text={_("share")} />

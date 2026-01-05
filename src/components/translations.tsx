@@ -16,7 +16,7 @@ function _(strings: TemplateStringsArray, ...indices: (number | Formatted)[]) {
 const timeFormatter = (_: { minutes: string, hours: string }): Formatter => (...arg: number[]) => (args: any[]) => {
     const number = args[arg[0]]
     if (!isNumber(number)) return ""
-    if (number > 3600) {
+    if (number > 2 * 3600) {
         const x = Math.round(number / 3600)
         return `${x} ${_.hours}`
     } else {
@@ -44,6 +44,8 @@ const frTexts = {
     myYearWithBixiLong: _`Mon année\n${0}\navec Bixi`,
     weSpentHoursTogether: _`Cette année, on a passé ${temps(0)} ensemble.\nPas mal, non ?`,
     tripAverage: _`Durée moyenne d'un trajet : ${temps(0)}`,
+    longestRide: _`Plus long trajet : ${temps(0)}`,
+    totalTrips: _`Nombre total de trajets : ${0}`,
     youRode: "Cette année, tu as roulé un total de ...",
     averageDist: _`Distance moyenne d'un trajet : ${distance(0)}`,
     yourHome: "Ton quartier, c'est",
@@ -54,7 +56,7 @@ const frTexts = {
     winterTrips: _`Tu as effectué ${0} trajets à Bixi en hiver.`,
     download: "Télécharger les stories",
     share: "Partage le bilan de ton année avec Bixi !",
-    estimate: "Estimation à partir du départ/arrivée et de la durée"
+    estimate: "Estimation à partir du départ/arrivée et de la durée",
 }
 
 const time = timeFormatter({ minutes: "minutes", hours: "hours" })
@@ -64,6 +66,8 @@ const enTexts: typeof frTexts = {
     myYearWithBixiLong: _`My journey\nwith Bixi in\n${0}`,
     weSpentHoursTogether: _`We spent ${time(0)} or so together this year.\nNot bad, uh?`,
     tripAverage: _`Average ride duration: ${time(0)}`,
+    longestRide: _`Longest ride: ${temps(0)}`,
+    totalTrips: _`Total number of rides: ${0}`,
     youRode: "This year, you rode a total of...",
     averageDist: _`Average trip distance: ${distance(0)}`,
     yourHome: "A place you call home:",
@@ -74,7 +78,7 @@ const enTexts: typeof frTexts = {
     winterTrips: _`You used Bixi ${0} times during winter.`,
     download: "Download the stories",
     share: "Share your Bixi stories of the year!",
-    estimate: "Estimate based on start/end points and duration"
+    estimate: "Estimate based on start/end points and duration",
 }
 
 type Keys = keyof typeof frTexts

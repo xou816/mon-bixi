@@ -170,14 +170,34 @@
     text-decoration: none;
 }
 
-.loadingIndicator {
+@property --loadingValue {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+
+.loading {
     position: absolute;
     top: 30%;
-    left: 0;
+    left: 0%;
     width: 100%;
-    text-align: center;
-    margin: 0;
-    color: #333;
-    border: none;
-    font-size: 1.5em;
+    box-sizing: border-box;
+    padding: 24px;
+
+    p {
+        margin: 12px;
+        text-align: center;
+    }
+
+    .loadingProgress {
+        display: block;
+        margin: 12px;
+        border: 1px solid #333;
+        height: 10px;
+        background: linear-gradient(to right,
+                #333 0 calc(var(--loadingValue) * 100%),
+                white calc(var(--loadingValue) * 100%) 100%);
+        border-radius: 10px;
+        transition: --loadingValue .5s ease;
+    }
 }

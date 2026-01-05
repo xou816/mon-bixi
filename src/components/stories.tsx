@@ -59,7 +59,7 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
                 }
             }
         }
-    }, [[playing, activePage]])
+    }, [playing, activePage])
 
     return { playing, activePage, setPlaying, setPage, togglePlaying, pageCount, duration }
 }

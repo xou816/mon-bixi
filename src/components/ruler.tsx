@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Konva from "konva";
 import { colorRed60 } from "./story-content";
 import { Easings } from "konva/lib/Tween";
+import { useLocale } from "./mon-bixi-dialog";
 
 // could use some cleanup + try to use Easings from Konva
 
@@ -43,22 +44,25 @@ function getAnimationParams({ animationStep, canvasHeight, targetValue }: { targ
     const offsetOfIndex = (index: number) => increment + index * canvasHeight / segmentCount
     const pageOfIndex = (index: number) => Math.floor(offsetOfIndex(index) / canvasHeight)
     const valueOfIndex = (index: number) => 1 / segmentEvery * (segmentCount - index + pageOfIndex(index) * segmentCount)
+    const opacityOfOffset = (offset: number) => Math.pow(Math.sin(Math.PI * Math.min(offset % canvasHeight, canvasHeight - (offset % canvasHeight)) / canvasHeight), 1.5)
     return {
         segmentCount,
         offsetOfIndex,
         valueOfIndex,
-        segmentEvery
+        segmentEvery,
+        opacityOfOffset
     }
 }
 
 export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue: number, animate: boolean, fill: string, fontFamily?: string }) {
-    const { drawParams, shapeRef } = useLoopingAnimation({ animate, duration: 3_000 })
+    const { drawParams, shapeRef } = useLoopingAnimation({ animate, duration: 2_500 })
     fontFamily = fontFamily ?? "ProximaNova"
+    const _ = useLocale()
 
     return <Shape ref={shapeRef as any}
         sceneFunc={(context) => {
             const { animationStep, canvasHeight } = drawParams.current
-            const { segmentCount, offsetOfIndex, valueOfIndex, segmentEvery } = getAnimationParams({ animationStep, canvasHeight, targetValue })
+            const { segmentCount, offsetOfIndex, valueOfIndex, segmentEvery, opacityOfOffset } = getAnimationParams({ animationStep, canvasHeight, targetValue })
 
             for (let index = 0; index < segmentCount; index++) {
                 context.save()
@@ -66,6 +70,7 @@ export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue:
                 const offset = offsetOfIndex(index)
                 const value = valueOfIndex(index)
                 context.translate(0, offset % canvasHeight)
+                context.globalAlpha = opacityOfOffset(offset)
                 context.fillStyle = fill
 
                 if (index % segmentEvery === 0) {
