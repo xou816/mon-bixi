@@ -41,23 +41,6 @@ function fetchGql(query: unknown) {
     });
 }
 
-export async function queryStats(): Promise<Data<{ member: MemberWithStats; }>> {
-    const statsQuery = {
-        operationName: "GlobalStats",
-        variables: { memberId: null },
-        query: `
-            query GlobalStats($memberId: String) {
-                member(id: $memberId) {
-                    stats { 
-                        numberOfRides
-                    }
-                }
-            }`
-    };
-    const response = await fetchGql(queryHistory)
-    return response.json();
-}
-
 export async function queryHistory(offset: number): Promise<Data<{ member: MemberWithRides }>> {
     const historyQuery = (offset: number) => ({
         operationName: "GetCurrentUserRides",
