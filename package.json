@@ -1,12 +1,17 @@
 {
   "name": "mon-bixi",
+  "description": "Faites le bilan de votre année 2025 à Bixi !",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "watch": "vite build --watch --mode development"
+    "watch": "vite build --watch --mode development",
+    "zip": "cd dist && zip -r -FS \"../mon-bixi-$TARGET-$(git rev-parse --short HEAD).zip\" * --exclude '*.git*'",
+    "pack": "rm -rf dist && npm run build && npm run zip",
+    "pack:chrome": "export TARGET=chrome && npm run pack",
+    "pack:firefox": "export TARGET=firefox && npm run pack"
   },
   "dependencies": {
     "fastest-levenshtein": "^1.0.16",
