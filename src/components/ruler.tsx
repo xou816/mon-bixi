@@ -2,12 +2,9 @@ import { Node } from "konva/lib/Node";
 import { Shape } from "react-konva";
 import { useEffect, useRef } from "react";
 import Konva from "konva";
-import { colorRed60 } from "./story-content";
 import { Easings } from "konva/lib/Tween";
-import { useLocale } from "./mon-bixi-dialog";
 
-// could use some cleanup + try to use Easings from Konva
-
+// could use some cleanup
 function useLoopingAnimation({ animate, duration }: { animate: boolean, duration: number }) {
     const shapeRef = useRef<Node>(null)
     const drawParams = useRef({
@@ -57,7 +54,6 @@ function getAnimationParams({ animationStep, canvasHeight, targetValue }: { targ
 export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue: number, animate: boolean, fill: string, fontFamily?: string }) {
     const { drawParams, shapeRef } = useLoopingAnimation({ animate, duration: 2_500 })
     fontFamily = fontFamily ?? "ProximaNova"
-    const _ = useLocale()
 
     return <Shape ref={shapeRef as any}
         sceneFunc={(context) => {
@@ -73,12 +69,14 @@ export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue:
                 context.globalAlpha = opacityOfOffset(offset)
                 context.fillStyle = fill
 
+                // draw ruler segments
                 if (index % segmentEvery === 0) {
                     context.fillRect(100 - 9, -.5, 9, 1)
                 } else {
                     context.fillRect(100 - 3, -.25, 3, .5)
                 }
 
+                // draw values every 5 increments
                 if (index % (segmentEvery * 5) === 0) {
                     const text = value.toString()
                     context.font = `italic 5px "${fontFamily}", sans-serif`
@@ -86,6 +84,7 @@ export function Ruler({ animate, fill, fontFamily, targetValue }: { targetValue:
                     context.fillText(text, 100 - width - 12, actualBoundingBoxAscent / 2)
                 }
 
+                // draw target value that we animate to
                 if (value === Math.round(targetValue)) {
                     const text = `... ${Math.round(targetValue)} km`
                     context.fillStyle = fill

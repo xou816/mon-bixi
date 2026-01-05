@@ -1,9 +1,12 @@
-import stations from './stations.json' // from https://gbfs.velobixi.com/gbfs/fr/station_information.json
+import stations from './stations.json' // from https://gbfs.velobixi.com/gbfs/fr/station_information.json, older version (pre-winter)
 import arrondissementsGeojson from './arrondissements.json' // from https://donnees.montreal.ca/fr/dataset/limites-administratives-agglomeration
 import montrealGeojson from './limites-terrestres.json' // from https://www.donneesquebec.ca/recherche/dataset/vmtl-limites-terrestres/resource/92cb062a-11be-4222-9ea5-867e7e64c5ff
+// dev dependencies only
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Shape, Vector2, Vector3 } from "three"
 import simplify from "simplify-js"
 import { boundingBox } from './utils'
+
+// all code in this file is executed at COMPILE time, we only export plain JS objects 
 
 export type Station = {
     name: string,
@@ -23,6 +26,7 @@ function computeArrondissementsMeshes() {
             if (holes.length > 0) console.log(`Warning: ${properties.NOM} has holes!`)
             return simplify(exterior.map(([x, y]) => ({ x, y })), 1e-3)
         })
+        // we create 3D meshes to perform raycasting later
         const meshes = simplePolys.map((poly) => {
             const shape = new Shape(poly.map(({ x, y }) => new Vector2(x, y)))
             const geometry = new ExtrudeGeometry(shape, { bevelEnabled: false });
@@ -34,6 +38,7 @@ function computeArrondissementsMeshes() {
 }
 
 const arrondissementsMeshes = computeArrondissementsMeshes()
+// export only the simplified polygons
 export const arrondissementPolys = arrondissementsMeshes.map(({ name, simplePolys }) => ({ name, simplePolys }))
 
 function computeMontealPolys() {
@@ -52,12 +57,14 @@ function computeMontealPolys() {
         .sort((a, b) => b.length - a.length)
 }
 
+// export the simplified polygon and a bounding box
 export const montrealPolys = computeMontealPolys()
 export const montrealBbox = boundingBox(montrealPolys[0])
 console.log(`Montreal with ${montrealPolys.length} polys, largest: ${montrealPolys[0].length} vertices`)
 
 function enrichStation(station: Station): EnrichedStation {
     const { lon, lat } = station
+    // we test (with raycasting towards our extruded 3D meshes) if the coords of a station are within a particular borough of Montreal
     const origin = new Vector3(lon, lat, 10)
     const raycaster = new Raycaster(origin, new Vector3(0, 0, -1))
 
@@ -75,5 +82,6 @@ function enrichStation(station: Station): EnrichedStation {
     }
 }
 
+// export an index of station names to their detailed info (specifically, which borough they're in)
 export const detailedStations: { [k: string]: EnrichedStation } = stations.data.stations
     .reduce((acc, station) => ({ ...acc, [station.name]: enrichStation(station) }), {})

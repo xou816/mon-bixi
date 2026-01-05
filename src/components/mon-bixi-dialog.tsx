@@ -27,6 +27,8 @@ function DownloadButton({ downloadList, showOnPage }: { showOnPage: number, down
     const [index, setIndex] = useState(-1)
     const a = useRef<HTMLAnchorElement>(null)
 
+    // hacky trick to download multiple files: clicking an anchor <a> with href+download attributes triggers a download
+    // we recursively update these attributes and trigger another (synthetic) click to download all our files with a single (real) click 
     const onClick = (e: MouseEvent) => {
         if (index === -1) e.preventDefault()
         if (index < downloadList.length - 1) {
@@ -45,7 +47,6 @@ function DownloadButton({ downloadList, showOnPage }: { showOnPage: number, down
 }
 
 const Locale = createContext("fr")
-
 export function useLocale() {
     const lang = useContext(Locale)
     return translate(lang === "fr" ? "fr" : "en")
@@ -76,6 +77,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     const { setPlaying, ...storiesProps } = useStoriesSlideshow({
         duration: 4_000,
         pageCount: pageCount(stats),
+        // save the rendered canvas before changing pages
         onBeforeNextPage: (page: number, total: number) => {
             if (!canvasRef.current || page === total - 1 || downloadsList.find(({ id }) => id === page) !== undefined) return
             downloadsList.splice(page, 0, {
@@ -88,16 +90,17 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
     })
 
     useIndexDb(async (db) => {
+        // optimistic: use existing stats
         const oldStats = await getLastStats(db, year)
         if (oldStats) setStats(oldStats.stats)
 
-        const latestStats = getUpdatedStats(db, year)
+        // get fresh data afterward
+        const latestStatsGenerator = getUpdatedStats(db, year)
         let done = false
         while (!done) {
-            const next = await latestStats.next();
+            const next = await latestStatsGenerator.next();
             done = next.done ?? true
             if (next.done) {
-                setLoadingProgress(100)
                 setStats(next.value.stats)
             } else {
                 setLoadingProgress(next.value)
@@ -105,6 +108,7 @@ export function MonBixiDialog({ year, lang }: { year: number, lang: string }) {
         }
     })
 
+    // event from the extension main script
     useOpenMonBixi(() => { setOpen(true) });
 
     useEffect(() => {

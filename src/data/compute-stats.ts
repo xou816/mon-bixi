@@ -110,7 +110,7 @@ function computeAllRidesPhysicalStats(rides: Ride[]) {
 function computePhysicalStats(ride: Ride) {
     const { startAddressStr, endAddressStr, startAddress, endAddress, startTimeMs, endTimeMs } = ride
 
-    let distance: Dimen<"m"> = 0 as Dimen<"m">
+    let distance = 0 as Dimen<"m">
     if (startAddressStr !== endAddressStr) {
         const midPoint = { ...startAddress, lat: endAddress.lat }
         distance = (sphericalDist(startAddress, midPoint)
@@ -177,6 +177,7 @@ export async function* getUpdatedStats(db: DbHandle, year: number): AsyncGenerat
 
     const { _mostFrequent: mostVisitedBorough, ...mostVisitedBoroughs } = s.mostVisitedBoroughs
     const { _mostFrequent: mostUsedStation, ...mostUsedStations } = s.mostUsedStations
+    
     const s2 = {
         ...s,
         totalTimeYearly: sum(s.rideTimeAndDist, t => t.duration),

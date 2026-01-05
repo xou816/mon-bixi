@@ -34,9 +34,11 @@ const PageIndex = createContext({
     setColor: (i: number, color: string) => { }
 })
 
+// all "pages" are rendered at once, but offset to the side so that only one page is visible
 function PageGroup({ children, height }: { children: ReactNode, height: number }) {
     const { activePage: page } = useStories();
 
+    // transition the background color
     const background = useRef<Node>(null);
     const pageColors = useRef<string[]>(["#f5b9e1"])
     useEffect(() => {
@@ -44,6 +46,7 @@ function PageGroup({ children, height }: { children: ReactNode, height: number }
         background.current.to({ fill: pageColors.current[page % pageColors.current.length] })
     }, [page]);
 
+    // slide to next page
     const groupRef = useRef<Node>(null);
     useEffect(() => {
         if (!groupRef.current) return;
@@ -58,6 +61,8 @@ function PageGroup({ children, height }: { children: ReactNode, height: number }
     const mappedChildren = useMemo(() => {
         let i = -1
         return Children.map(children, (child) => {
+            // each child of the page group is given its index, so as to render everything at the right offset
+            // also given a way to register the color they want to transition to
             if (child !== null) {
                 i++
                 const ctx = {
@@ -84,20 +89,21 @@ function Page({ children, color }: { children: ReactNode, color: string }) {
 }
 
 
-function useAnimateThisPage() {
+function useActivePage() {
     const { index } = useContext(PageIndex)
-    const { activePage: page } = useStories()
-    return index === page
+    const { activePage } = useStories()
+    return index === activePage
 }
 
 function HomePage({ stats, height }: { stats: StatsDetail, height: number }) {
     const _ = useLocale()
     const { index } = useContext(PageIndex)
-    const { activePage: page } = useStories()
+    const { activePage } = useStories()
     return (
         <Page color="#f5b9e1">
-            <VerticalStack x={5} y={10} animate={page === index}>
+            <VerticalStack x={5} y={10} animate={activePage === index}>
                 {_("myYearWithBixiLong", stats.year.toString()).split("\n").map((text) => {
+                    // specific style for the year portion of this message
                     const isYear = /\d/.test(text.trim())
                     return (
                         <Resize key={text} toWidth={90}>
@@ -108,15 +114,17 @@ function HomePage({ stats, height }: { stats: StatsDetail, height: number }) {
                     );
                 })}
             </VerticalStack>
-            <BixiBike animated={page === index + 1} x={0} y={35} scale={1} />
-            {page <= 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
+            
+            {/* this content overflow on the next page (index + 1) */}
+            <BixiBike animated={activePage === index + 1} x={0} y={35} scale={1} />
+            {activePage <= index + 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
         </Page>
     )
 }
 
 function TimeSpentPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const animate = useAnimateThisPage()
+    const animate = useActivePage()
     return (
         <Page color="#f5f596">
             <VerticalStack x={5} y={12} animate={animate}>
@@ -134,7 +142,7 @@ function TimeSpentPage({ stats }: { stats: StatsDetail }) {
 
 function MostVisitedPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const animate = useAnimateThisPage()
+    const animate = useActivePage()
     return (
         <Page color="#bee1f0">
             <VerticalStack x={5} y={12} animate={animate}>
@@ -156,7 +164,7 @@ function MostVisitedPage({ stats }: { stats: StatsDetail }) {
 
 function TravelledPage({ stats, height }: { stats: StatsDetail, height: number }) {
     const _ = useLocale()
-    const animate = useAnimateThisPage()
+    const animate = useActivePage()
     return (
         <Page color="#febd97">
             <Ruler targetValue={stats.totalDistanceYearly / 1_000} animate={animate} fill="#d3803c" />
@@ -174,7 +182,7 @@ function TravelledPage({ stats, height }: { stats: StatsDetail, height: number }
 
 function WinterPage({ stats }: { stats: StatsDetail }) {
     const _ = useLocale()
-    const animate = useAnimateThisPage()
+    const animate = useActivePage()
     return (
         <Page color="#bec8ff">
             <SnowFall animate={animate} />

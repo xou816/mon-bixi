@@ -25,6 +25,7 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
 
     const timeoutData = useRef<{ [k: number]: TimeoutData }>({})
 
+    // this effect handles slideshow play/pause, making sure to go to the next story/page at the right moment (accounting for pauses)
     useEffect(() => {
         // clear timeouts on previously visited pages
         for (const [pageIndex, data] of Object.entries(timeoutData.current)) {
@@ -37,9 +38,10 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
         const cur = document.timeline.currentTime as number
         let { latest, elapsed, timeout } = timeoutData.current[activePage] ?? { latest: undefined, elapsed: 0 }
 
+        // save time at which we started playing the slideshow
         if (playing && activePage <= pageCount - 1 && activePage > -1) {
             if (!timeout) {
-                // console.log(`Running for ${duration - elapsed}ms`)
+                // only show the current page for the remaining time
                 timeout = setTimeout(() => nextPage(), duration - elapsed)
             }
             timeoutData.current = {
@@ -49,7 +51,7 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
                     timeout
                 }
             }
-        } else {
+        } else { // stop the clock, and save the elapsed time since we pressed play
             clearTimeout(timeout)
             timeoutData.current = {
                 [activePage]: {
@@ -65,6 +67,7 @@ export function useStoriesSlideshow({ pageCount, duration, onBeforeNextPage }: {
 }
 
 type CSSStoryProperties = { "--stepperTiming"?: string } & CSSProperties
+
 type StoriesProps = {
     playing: boolean,
     activePage: number,
@@ -79,6 +82,7 @@ type StoriesProps = {
 const StoriesContext = createContext({ activePage: 0 })
 export const useStories = () => useContext(StoriesContext)
 
+// anything can be used as children; they can query the current page with useStores
 export function StoriesSlideshow({ playing, activePage, duration, setPage, togglePlaying, pageCount, children, close }: StoriesProps) {
     const stepperStyle = useMemo(() => ({ "--stepperTiming": `${duration}ms` } as CSSStoryProperties), [duration])
 

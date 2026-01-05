@@ -9,6 +9,7 @@ export const VerticalStack = memo(({ children, animate, ...rest }: { children: R
     const refs = useRef<Node[]>([]);
     const groupRef = useRef<Node>(null);
 
+    // computes the offset of each element so that they stack vertically
     useEffect(() => {
         if (!refs.current) return;
         const newOffsets = refs.current.reduce((acc, ref, i) => {

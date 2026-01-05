@@ -8,7 +8,7 @@ const DB_VERSION = 2;
 
 function migrateDatabase(db: IDBDatabase, event: IDBVersionChangeEvent): Promise<void> {
     return new Promise((resolve) => {
-        const newVersion = event.newVersion ?? 1
+        const newVersion = event.newVersion ?? DB_VERSION
         if (newVersion >= 1 && event.oldVersion !== 1) {
             const objectStore = db.createObjectStore(RIDES_STORE, { keyPath: "startTimeMs" });
             objectStore.transaction.oncomplete = () => resolve()

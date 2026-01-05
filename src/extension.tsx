@@ -1,4 +1,4 @@
-import { DependencyList, useEffect } from "react";
+import { useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { MonBixiDialog } from "./components/mon-bixi-dialog";
 import browser from "webextension-polyfill";
@@ -6,6 +6,7 @@ import { translate } from "./components/translations";
 
 const OPEN_MON_BIXI_EVENT = "openmonbixi"
 
+// used to wait for an element to be in the DOM
 function querySelector(selector: string): Promise<Element> {
     return new Promise((resolve) => {
         const observer = new MutationObserver(mut => {
@@ -18,34 +19,32 @@ function querySelector(selector: string): Promise<Element> {
     });
 }
 
-export function useOpenMonBixi(handler: () => void, deps: DependencyList = []) {
+export function useOpenMonBixi(handler: () => void) {
     return useEffect(() => {
         document.addEventListener(OPEN_MON_BIXI_EVENT, handler)
         return () => document.removeEventListener(OPEN_MON_BIXI_EVENT, handler)
-    }, deps)
+    }, [])
 }
 
-function ensureReactDialogInjected(lang: "fr" | "en"): HTMLElement {
+function ensureReactDialogInjected(lang: "fr" | "en") {
     const contentId = "mon-bixi";
-    let content: HTMLElement | null = document.getElementById(contentId)
-    if (content != null) return content
+    if (document.getElementById(contentId)) return
 
-    content = document.createElement("div")
+    const content = document.createElement("div")
     content.id = contentId
     content.attachShadow({ mode: "open" })
     document.body.appendChild(content)
 
     ReactDOM.createRoot(content.shadowRoot!).render(
         <>
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=pause,play_arrow" />
             <link rel="stylesheet" type="text/css" href={browser.runtime.getURL("mon-bixi.css")} />
             <MonBixiDialog year={2025} lang={lang} />
         </>
     );
-    return content
 }
 
 async function ensureTabInjected() {
+    // couldn't find a more reliable way to detect the language, will do for now!
     const lang = document.querySelector(`a[href^="https://bixi.com/en/"]`) !== null ? "en" : "fr"
     ensureMobileTabInjected(lang)
     ensureDesktopTabInjected(lang)
@@ -91,7 +90,8 @@ async function ensureDesktopTabInjected(lang: "fr" | "en") {
 }
 
 function onNextJsUpdate(cb: () => void) {
-    const observer = new MutationObserver(mut => cb());
+    // bixi's UI uses NextJS, we must re inject our link if Next/React changes the DOM
+    const observer = new MutationObserver(() => cb());
     observer.observe(document.getElementById("__next")!, { childList: true, subtree: true });
 }
 

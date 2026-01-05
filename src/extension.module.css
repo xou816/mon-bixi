@@ -17,12 +17,6 @@
         transform 200ms ease-out,
         overlay 200ms ease allow-discrete,
         display 200ms ease allow-discrete;
-
-    h1 {
-        color: var(--core-ui-color-red60);
-        font-family: "LyftProUI", "ProximaNova", sans-serif;
-    }
-
 }
 
 .rootDialog:open {

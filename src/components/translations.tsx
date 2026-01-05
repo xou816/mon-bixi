@@ -3,6 +3,7 @@ type Formatter = (...arg: number[]) => Formatted
 
 const isNumber = (a: any): a is number => Number.isFinite(a)
 
+// used to build a lambda (for translations with params) using tagged template syntax
 function _(strings: TemplateStringsArray, ...indices: (number | Formatted)[]) {
     return (args: any[]) => strings.reduce((acc, s, i) => {
         if (isNumber(indices[i]))

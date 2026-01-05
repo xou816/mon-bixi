@@ -45,6 +45,8 @@ export async function queryHistory(offset: number): Promise<Data<{ member: Membe
     const historyQuery = (offset: number) => ({
         operationName: "GetCurrentUserRides",
         variables: { startTimeMs: offset.toString() },
+        // longitude and latitude are incorrectly labelled, so we relabel them
+        // also startTimeMs is really an offset
         query: `
             query GetCurrentUserRides($startTimeMs: String, $memberId: String) {
                 member(id: $memberId) {

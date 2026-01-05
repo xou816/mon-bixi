@@ -15,6 +15,8 @@ const getLastRides = (offset: number) => queryHistory(offset).then(({ data }) =>
 
 type BatchInfo = { rides: Ride[], hasMore: boolean, oldestRideMs: string, newestRideMs: string }
 
+// fetches as many rides as needed and saves them to IndexedDB
+// yields the progress as a value between 0 and 1
 async function* fetchBatches(
     db: DbHandle,
     startOffset: number,
@@ -33,15 +35,19 @@ async function* fetchBatches(
             cur = await getLastRides(offset)
             const tx = await db.createTx(RIDES_STORE, "readwrite")
             for (const ride of cur.rides) {
-                if (firstRideTs === undefined) 
+                if (firstRideTs === undefined)
                     firstRideTs = parseInt(ride.startTimeMs, 10)
                 if (ride.startTimeMs < endOfYear)
                     tx.add(ride)
             }
 
             const lastRideTs = parseInt(cur.rides[cur.rides.length - 1].startTimeMs, 10)
-            const progress = 1 - Math.max(0, lastRideTs - startOfYearInt) / (firstRideTs! - startOfYearInt)
-            yield progress
+            if (!firstRideTs) {
+                yield 0
+            } else {
+                const progress = 1 - Math.max(0, lastRideTs - startOfYearInt) / (firstRideTs - startOfYearInt)
+                yield progress
+            }
 
             offset += 10
         } catch (e) {
@@ -57,6 +63,8 @@ async function* fetchBatches(
     }))
 }
 
+// fetches as many rides as needed and saves them to IndexedDB
+// yields the progress as a value between 0 and 1
 export async function* fetchRidesAsNeeded(db: DbHandle, year: number) {
     const [startOfYear, endOfYear] = yearBounds(year)
     const [lastRide, oldestRide, count] = await Promise.all([
