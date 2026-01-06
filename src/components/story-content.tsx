@@ -116,9 +116,7 @@ function HomePage({ stats, height }: { stats: StatsDetail, height: number }) {
             </VerticalStack>
 
             {/* this content overflow on the next page (index + 1) */}
-            <BixiBike animated={activePage === index + 1} x={0} y={35} scale={1} />
-            {activePage <= index + 1 && <Text x={activePage * 100 + 5} y={height - 5}
-                fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
+            <BixiBike animated={activePage === index + 1} x={0} y={70} scale={1} />
         </Page>
     )
 }
