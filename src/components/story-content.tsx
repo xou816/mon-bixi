@@ -67,7 +67,7 @@ function PageGroup({ children, height }: { children: ReactNode, height: number }
                 i++
                 const ctx = {
                     index: i,
-                    setColor: (i: number, c: string) => { pageColors.current[0 + i] = c }
+                    setColor: (i: number, c: string) => { pageColors.current[i] = c }
                 }
                 return <PageIndex.Provider key={i} value={ctx}>{child}</PageIndex.Provider>
             }
@@ -114,10 +114,11 @@ function HomePage({ stats, height }: { stats: StatsDetail, height: number }) {
                     );
                 })}
             </VerticalStack>
-            
+
             {/* this content overflow on the next page (index + 1) */}
             <BixiBike animated={activePage === index + 1} x={0} y={35} scale={1} />
-            {activePage <= index + 1 && <Text x={5} y={height - 5} fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
+            {activePage <= index + 1 && <Text x={activePage * 100 + 5} y={height - 5}
+                fontSize={2} width={90} align="right" fill="gray" text="Illus.: Mathilde Filippi" />}
         </Page>
     )
 }

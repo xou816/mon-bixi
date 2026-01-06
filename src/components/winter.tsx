@@ -34,7 +34,7 @@ function pseudoRandom() {
 
 function makeSnowflake(variantCount: number) {
     return {
-        x: 5 + Math.round(pseudoRandom() * 95),
+        x: 5 + Math.round(pseudoRandom() * 90),
         y: Math.round(pseudoRandom() * 180),
         phase: pseudoRandom(),
         scale: 0.4 + 0.3 * pseudoRandom(),
@@ -62,8 +62,9 @@ function useLoopingAnimation(animate: boolean) {
                 canvasHeight: 1.1 * layerHeight / layerScale
             }
         }, shapeRef.current?.getLayer())
-        animation.start()
 
+        if (animate) animation.start()
+        else animation.stop()
         return () => { animation.stop() }
     }, [animate])
     return { drawParams, shapeRef }
