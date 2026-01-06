@@ -1,5 +1,9 @@
 # mon-bixi web extension
 
+## Disclaimer
+
+This extension is in no way associated with Bixi.com. This represents my own vision of a Wrapped-like feature for Bixi.
+
 ## Building
 
 Tested with npm 10.x/11.x, node 22.x/25.x, generic Linux.

@@ -1,0 +1,11 @@
+{
+  "extensionName": {
+    "message": "Mon Bixi",
+    "description": "Name of the extension."
+  },
+
+  "extensionDescription": {
+    "message": "Get an overview of your journey with Bixi in 2025 as short animated stories with statistics, directly from the Bixi website.",
+    "description": "Description of the extension."
+  }
+}

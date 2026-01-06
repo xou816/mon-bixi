@@ -1,0 +1,11 @@
+{
+  "extensionName": {
+    "message": "Mon Bixi",
+    "description": "Name of the extension."
+  },
+
+  "extensionDescription": {
+    "message": "Faites le bilan de votre année 2025 à Bixi, sous forme de stories appuyées de statistiques, directement depuis le site web de Bixi.",
+    "description": "Description of the extension."
+  }
+}

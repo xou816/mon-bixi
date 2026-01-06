@@ -1,4 +1,7 @@
 {
+  "name": "__MSG_extensionName__",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "fr",
   "manifest_version": 3,
   "icons": {
     "16": "icon/16.png",
