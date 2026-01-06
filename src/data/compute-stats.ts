@@ -61,8 +61,8 @@ function findClosestStation(loc: Location, radius: number) {
 
 function findBoroughForStation(station: string, loc: Location, radius: number = 300): string {
     if (detailedStations[station]) {
-        const { lat, lon } = detailedStations[station]
-        const dist = sphericalDist({ lat, lon }, loc)
+        const coords = detailedStations[station]
+        const dist = sphericalDist(coords, loc)
         if (dist < radius)
             return detailedStations[station].arrondissement
     }
@@ -72,8 +72,8 @@ function findBoroughForStation(station: string, loc: Location, radius: number = 
 
 function fixStationName(station: string, loc: Location, radius: number = 300) {
     if (detailedStations[station]) {
-        const { lat, lon } = detailedStations[station]
-        const dist = sphericalDist({ lon, lat }, loc)
+        const coords = detailedStations[station]
+        const dist = sphericalDist(coords, loc)
         if (dist < radius) return station
     }
 

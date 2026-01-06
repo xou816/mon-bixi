@@ -1,6 +1,6 @@
 import { Circle, Group, Path } from "react-konva";
 import { colorRed60 } from "./story-content";
-import { RefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Konva from "konva";
 import { Node } from "konva/lib/Node";
 
@@ -29,6 +29,7 @@ function FrontWheel({ animated }: { animated: boolean }) {
                 radius={27.7}
                 stroke="black"
                 strokeWidth={4} />
+            {/* cant be bothered to figure out coordinates to rotate the arc instead of duplicating -- oh well, that'll do */}
             {wheelFrame === 0 && <Path
                 key="wheel-0"
                 stroke="black"
@@ -86,11 +87,11 @@ export function BixiBike({ x, y, scale, animated }: { x: number; y: number; scal
         <Group ref={groupRef as any} x={x} y={y} scaleX={scale} scaleY={scale}>
             <FrontWheel animated={animated} />
             <Group ref={fullBike as any}>
-            <Circle
-                x={37} y={76}
-                radius={27.7}
-                stroke="black"
-                strokeWidth={4} />
+                <Circle
+                    x={37} y={76}
+                    radius={27.7}
+                    stroke="black"
+                    strokeWidth={4} />
                 <Path
                     fill="#ddd"
                     data="m 64.5,38.7 2.9,-1.4 3.8,10.1 -2.9,1.4 z" />
